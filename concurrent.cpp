@@ -19,6 +19,7 @@ using namespace std;
 
 int numDP = 10000;      // Vietoviu skaicius (demand points, max 10000)
 int numPF = 5;          // Esanciu objektu skaicius (preexisting facilities)
+int numF  = 3;          // Esanciu imoniu skaicius (firms)
 int numCL = 50;         // Kandidatu naujiems objektams skaicius (candidate locations)
 int numX  = 3;          // Nauju objektu skaicius
 
@@ -36,6 +37,7 @@ int locationAvailable(int location);
 void randomSolution(int *X);
 double HaversineDistance(double* a, double* b);
 double evaluateSolution(int *X);
+void updateRanks();
 
 //=============================================================================
 
@@ -62,24 +64,24 @@ int main() {
     bestX = X;
 	
     for (int iters = 0; iters < 10000; iters++) {
-        // Generate solution
         generateSolution();
+        u = evaluateSolution();
 
-
-        double u = evaluateSolution(X);
-
-        #pragma omp critical
+        if (u > bestU) 
         {
-            if (u > bestU) {     // Jei geresnis, tai issaugojam kaip geriausia zinoma
-                bestU = u;
-                for (int i=0; i<numX; i++) bestX[i] = X[i];
-            }
+            bestU = u;
+            updateRanks();
+
+            /*  Note:
+                Shouldn't we generate the solution BEFORE assigning X = X'?
+                If we do it affter assigning, the locations that were in X but weren't in X'
+                become available to pick.
+             */
+            for (int i=0; i<numX; i++) 
+                bestX[i] = X[i];
         }
     }
 
-	printf("Lygiagretus laikas: %.2f\n", getTime() - ts_concurrent);
-
-	//----- Rezultatu spausdinimas --------------------------------------------
 	
 	double tf = getTime();     // Skaiciavimu pabaigos laikas
 
@@ -87,6 +89,8 @@ int main() {
 	for (int i=0; i<numX; i++) cout << bestX[i] << " ";
 	cout << "(" << bestU << ")" << endl << "Skaiciavimo trukme: " << tf-ts_start << endl;
 }
+
+#pragma region Demand points
 
 void loadDemandPoints() {
 	FILE *f;
@@ -100,8 +104,6 @@ void loadDemandPoints() {
 }
 
 void calculateDistances(){
-	double time_start = getTime();
-
 	//Memory
 	distances = new double*[numDP];
 	for (int i = 0; i < numDP; i++) 
@@ -117,10 +119,8 @@ void calculateDistances(){
 			distances[jIters][iIters] = distance;
 		}
 	}
-	distances[numDP - 1][numDP - 1] = 0;
 
-	double save_to_file_start = getTime();
-	cout << "Skaiciavimo laikas: " << getTime() - time_start << endl;
+	distances[numDP - 1][numDP - 1] = 0;
 }
 
 double HaversineDistance(double* a, double* b) {
@@ -132,12 +132,7 @@ double HaversineDistance(double* a, double* b) {
    return d;
 }
 
-double getTime() {
-   struct timeval laikas;
-   gettimeofday(&laikas, NULL);
-   double rez = (double)laikas.tv_sec+(double)laikas.tv_usec/1000000;
-   return rez;
-}
+#pragma endregion
 
 #pragma region Generate solution
 
@@ -156,10 +151,12 @@ void randomSolution(int *X) {
 	}
 }
 
-void generateSolution(int *X)
+void generateSolution()
 {
-    int changed = 0;
+    //New seed on every call (?)
+    srand((unsigned)time(0));
 
+    int changed = 0;
     do
     {
         for (int i = 0; i < numX; i ++)
@@ -170,33 +167,40 @@ void generateSolution(int *X)
             if (probability != 1)
                 continue;
 
-            changed = 1;
-
-
+            /*  Notes to ask:
+                1)  Is the probability to choose the location correct? The article states:
+                    'a single facility will be changed in average'
+                    What if none facilities will be changed? (--> thats why do/while, but is it optimal?)
+                
+                2)  If codeflow manages to come here (past the if above, do we MUST change this location?
+                    There is a possibility that the below cycle will not pick any location.
+                    So, do/while is neccassary here too?
+            */
             for (int j = 0; j < numDP; j++) 
             {
                 if (locationAvailable(j) == 0)
                     continue;
 
-                double probabilityToPick = 0;
+                double locationProbability = 0;
                 //RDOA
                 if (GEN_SOLUTION == 0)
-                {
-                    probabilityToPick = ranks[j] / ranksSum;
-                }
+                    locationProbability = ranks[j] / rankSum;
 
                 //RDOA-D
                 if (GEN_SOLUTION == 1)
                 {
-                    double currentDistance = distances[i][j];
-                    if (currentDistance == 0)
-                        currentDistance = [j][i];
-                    
                     double probabilityDenominator = 0;
                     for (int z = 0; z < numDP; z++)
-                        probabilityDenominator += ranks[z] / currentDistance;
+                        probabilityDenominator += ranks[z] / distances[i][j];
 
-                    probabilityToPick = ranks[j] / probabilityDenominator;
+                    locationProbability = ranks[j] / (distances[i][j] * probabilityDenominator);
+                }
+
+                if (rand() % 100 < (locationProbability * 100))
+                {
+                    X[i] = j;
+                    changed = 1;
+                    break;
                 }
             }
         }
@@ -206,49 +210,69 @@ void generateSolution(int *X)
 
 int locationAvailable(int location)
 {
-    int available = 1;
     for (int i = 0; i < numX; i++)
     {
         if (X[i] == location || bestX[i] == location) 
-        {
-            available = 0;
-            break;
-        }
+            return 0;
     }
 
-    return available;
+    return 1;
 }
 
 #pragma endregion
 
-double evaluateSolution(int *X) {
+double evaluateSolution() 
+{
 	double U = 0;
-	int bestPF;
-	int bestX;
-	double d;
-	for (int i=0; i<numDP; i++) {
-		bestPF = 1e5;		
-		for (int j=0; j<numPF; j++) {
-			//d = HaversineDistance(demandPoints[i], demandPoints[j]);
-            d = distances[i][j];
-			if (d < bestPF) 
-				bestPF = d;
-		}
 
-		bestX = 1e5;
-		for (int j=0; j<numX; j++) {
-			//d = HaversineDistance(demandPoints[i], demandPoints[X[j]]);
-            d = distances[i][X[j]];
-			if (d < bestX) 
-				bestX = d;
-		}
+    //Binary rule
+    if (EVAL_SOLUTION == 0)
+    {
+        int bestPF;
+        int bestX;
+        double d;
 
-		if (bestX < bestPF) 
-			U += demandPoints[i][2];
-		else if (bestX == bestPF) 
-			U += 0.3*demandPoints[i][2];
-	}
+        for (int i = 0; i < numDP; i++) 
+        {
+            bestPF = 1e5;
+
+            // Nearest from current facility and preexisting
+            for (int j = 0; j < numPF; j++) 
+            {
+                d = distances[i][j];
+                if (d < bestPF)
+                    bestPF = d;
+            }
+
+            // Nearest from current facility and solution
+            bestX = 1e5;
+            for (int j = 0; j < numX; j++) 
+            {
+                d = distances[i][X[j]];
+                if (d < bestX) 
+                    bestX = d;
+            }
+
+            // Attraction is 1/(1 + distance), so smaller distance the better
+            if (bestX < bestPF)
+                U += demandPoints[i][2];
+            else if (bestX == bestPF) 
+                U += demandPoints[i][2] * ( 1 / (numF + 1)); // Fixed proportion - equal for every firm?
+        }
+    }
+	
+    //PartialyBinaryRule
+    if (EVAL_SOLUTION == 1)
+    {
+
+    }
 
 	return U;
 }
 
+double getTime() {
+   struct timeval laikas;
+   gettimeofday(&laikas, NULL);
+   double rez = (double)laikas.tv_sec+(double)laikas.tv_usec/1000000;
+   return rez;
+}
