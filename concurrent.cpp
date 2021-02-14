@@ -223,51 +223,54 @@ int locationAvailable(int location)
 
 double evaluateSolution() 
 {
-	double U = 0;
+	double result = 0;
 
-    //Binary rule
-    if (EVAL_SOLUTION == 0)
+    for (int i = 0; i < numDP; i++) 
     {
         int bestPF;
         int bestX;
         double d;
+        bestPF = 1e5;
 
-        for (int i = 0; i < numDP; i++) 
+        // Nearest from current facility and preexisting
+        for (int j = 0; j < numPF; j++) 
         {
-            bestPF = 1e5;
+            d = distances[i][j];
+            if (d < bestPF)
+                bestPF = d;
+        }
 
-            // Nearest from current facility and preexisting
-            for (int j = 0; j < numPF; j++) 
-            {
-                d = distances[i][j];
-                if (d < bestPF)
-                    bestPF = d;
-            }
+        // Nearest from current facility and solution
+        bestX = 1e5;
+        for (int j = 0; j < numX; j++) 
+        {
+            d = distances[i][X[j]];
+            if (d < bestX) 
+                bestX = d;
+        }
 
-            // Nearest from current facility and solution
-            bestX = 1e5;
-            for (int j = 0; j < numX; j++) 
-            {
-                d = distances[i][X[j]];
-                if (d < bestX) 
-                    bestX = d;
-            }
-
+        //Binary rule
+        if (EVAL_SOLUTION == 0)
+        {
             // Attraction is 1/(1 + distance), so smaller distance the better
             if (bestX < bestPF)
-                U += demandPoints[i][2];
+                result += demandPoints[i][2];
             else if (bestX == bestPF) 
-                U += demandPoints[i][2] * ( 1 / (numF + 1)); // Fixed proportion - equal for every firm?
+                result += demandPoints[i][2] * ( 1 / (numF + 1)); // Fixed proportion - equal for every firm?
         }
-    }
-	
-    //PartialyBinaryRule
-    if (EVAL_SOLUTION == 1)
-    {
+
+        //PartialyBinaryRule
+        if (EVAL_SOLUTION == 1)
+        {
+            double attractionCurrent = 1 / (1 + bestX);
+            double attractionPreexisting = 1 / (1 + bestPF);
+
+            result += demandPoints[i][2] * (attractionCurrent / (attractionCurrent + (numF * attractionPreexisting));
+        }
 
     }
 
-	return U;
+	return result;
 }
 
 double getTime() {
