@@ -12,8 +12,8 @@
     EvalSolution
     0 - BinaryRule, 1 - PartialyBinaryRule 
 */
-#DEFINE GEN_SOLUTION = 0;
-#DEFINE EVAL_SOLUTION = 0;
+#define GEN_SOLUTION 0
+#define EVAL_SOLUTION 0
 
 using namespace std;
 
@@ -34,14 +34,15 @@ void loadDemandPoints();
 void calculateDistances();
 void generateSolution();
 int locationAvailable(int location);
-void randomSolution(int *X);
+void randomSolution();
 double HaversineDistance(double* a, double* b);
-double evaluateSolution(int *X);
-void updateRanks();
+double evaluateSolution();
+void updateRanks(int success);
 
 //=============================================================================
 
 int main() {
+    double ts_start = getTime();
 	loadDemandPoints();
 	calculateDistances();
 	
@@ -58,8 +59,8 @@ int main() {
         rankSum += ranks[i];
     }
 
-    randomSolution(X);
-    double u = evaluateSolution(X);
+    randomSolution();
+    double u = evaluateSolution();
     bestU = u;
     bestX = X;
 	
@@ -69,8 +70,8 @@ int main() {
 
         if (u > bestU) 
         {
+            updateRanks(1);
             bestU = u;
-            updateRanks();
 
             /*  Note:
                 Shouldn't we generate the solution BEFORE assigning X = X'?
@@ -80,14 +81,13 @@ int main() {
             for (int i=0; i<numX; i++) 
                 bestX[i] = X[i];
         }
+        else
+            updateRanks(0);
     }
-
-	
-	double tf = getTime();     // Skaiciavimu pabaigos laikas
 
 	cout << "Geriausias sprendinys: ";
 	for (int i=0; i<numX; i++) cout << bestX[i] << " ";
-	cout << "(" << bestU << ")" << endl << "Skaiciavimo trukme: " << tf-ts_start << endl;
+	cout << "(" << bestU << ")" << endl << "Skaiciavimo trukme: " << getTime() - ts_start << endl;
 }
 
 #pragma region Demand points
@@ -136,7 +136,7 @@ double HaversineDistance(double* a, double* b) {
 
 #pragma region Generate solution
 
-void randomSolution(int *X) {
+void randomSolution() {
 	int unique;
 	for (int i=0; i<numX; i++) {
 		do {
@@ -265,12 +265,68 @@ double evaluateSolution()
             double attractionCurrent = 1 / (1 + bestX);
             double attractionPreexisting = 1 / (1 + bestPF);
 
-            result += demandPoints[i][2] * (attractionCurrent / (attractionCurrent + (numF * attractionPreexisting));
+            result += demandPoints[i][2] * (attractionCurrent / (attractionCurrent + (numF * attractionPreexisting)));
         }
 
     }
 
 	return result;
+}
+
+void updateRanks(int success)
+{
+    int zeroExists = 0;
+
+    for (int i = 0; i < numX; i++)
+    {
+        if (success == 1)
+        {
+            ranks[X[i]]++;
+
+            //Search if X contains bestX[i]
+            int contains = 0;
+            for (int j = 0; j < numX; j++)
+            {
+                if (X[j] == bestX[i])
+                {
+                    contains = 1;
+                    break;
+                }
+            }
+
+            if (contains == 0)
+            {
+                ranks[bestX[i]]--;
+                if (ranks[bestX[i]] == 0)
+                    zeroExists = 1;
+            }
+        }
+
+        if (success == 0)
+        {
+            //Search if bestX contains X[i]
+            int contains = 0;
+            for (int j = 0; j < numX; j++)
+            {
+                if (X[i] == bestX[j])
+                {
+                    contains = 1;
+                    break;
+                }
+            }
+
+            if (contains == 0)
+            {
+                ranks[X[i]]--;
+                if (ranks[X[i]] == 0)
+                    zeroExists = 1;
+            }
+        }
+    }
+
+    if (zeroExists)
+        for(int i = 0; i < numDP; i++)
+            ranks[i]++;
 }
 
 double getTime() {
