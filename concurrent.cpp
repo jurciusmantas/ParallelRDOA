@@ -12,8 +12,8 @@
     EvalSolution
     0 - BinaryRule, 1 - PartialyBinaryRule 
 */
-#define GEN_SOLUTION 0
-#define EVAL_SOLUTION 0
+#define GEN_SOLUTION 1
+#define EVAL_SOLUTION 1
 
 using namespace std;
 
@@ -65,7 +65,7 @@ int main() {
     for (int i=0; i<numX; i++) 
         bestX[i] = X[i];
 	
-    for (int iters = 0; iters < 100000; iters++) {
+    for (int iters = 0; iters < 10000; iters++) {
         printf("iteration - %d \n", iters);
         generateSolution();
         u = evaluateSolution();
@@ -242,7 +242,7 @@ double evaluateSolution()
 {
 	double result = 0;
     int bestPF;
-    int bestX;
+    int bestCX;
     double d;
 
     for (int i = 0; i < numDP; i++) 
@@ -257,21 +257,21 @@ double evaluateSolution()
         }
 
         // Nearest from current facility and solution
-        bestX = 1e5;
+        bestCX = 1e5;
         for (int j = 0; j < numX; j++) 
         {
             d = distances[i][X[j]];
-            if (d < bestX) 
-                bestX = d;
+            if (d < bestCX) 
+                bestCX = d;
         }
 
         //Binary rule
         if (EVAL_SOLUTION == 0)
         {
             // Attraction is 1/(1 + distance), so smaller distance the better
-            if (bestX < bestPF)
+            if (bestCX < bestPF)
                 result += demandPoints[i][2];
-            else if (bestX == bestPF) 
+            else if (bestCX == bestPF) 
                 //result += demandPoints[i][2] * ( 1.0 / (numF + 1)); // Fixed proportion - equal for every firm?
                 result += 0.3 * demandPoints[i][2]; // Fixed proportion - 0.3?
         }
@@ -279,8 +279,8 @@ double evaluateSolution()
         //PartialyBinaryRule
         if (EVAL_SOLUTION == 1)
         {
-            double attractionCurrent = 1 / (1 + bestX);
-            double attractionPreexisting = 1 / (1 + bestPF);
+            double attractionCurrent = 1.0 / (1 + bestCX);
+            double attractionPreexisting = 1.0 / (1 + bestPF);
 
             result += demandPoints[i][2] * (attractionCurrent / (attractionCurrent + (numF * attractionPreexisting)));
         }
