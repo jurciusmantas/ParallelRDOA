@@ -52,8 +52,8 @@ int main() {
     
     //Init ranks and rankSum
     rankSum = 0;
-    ranks = new int[numDP];
-    for (int i = 0; i < numDP; i++)
+    ranks = new int[numCL];
+    for (int i = 0; i < numCL; i++)
     {
         ranks[i] = i + 1;
         rankSum += ranks[i];
@@ -62,9 +62,11 @@ int main() {
     randomSolution();
     double u = evaluateSolution();
     bestU = u;
-    bestX = X;
+    for (int i=0; i<numX; i++) 
+        bestX[i] = X[i];
 	
-    for (int iters = 0; iters < 10000; iters++) {
+    for (int iters = 0; iters < 100000; iters++) {
+        printf("iteration - %d \n", iters);
         generateSolution();
         u = evaluateSolution();
 
@@ -77,7 +79,7 @@ int main() {
                 Shouldn't we generate the solution BEFORE assigning X = X'?
                 If we do it affter assigning, the locations that were in X but weren't in X'
                 become available to pick.
-             */
+            */
             for (int i=0; i<numX; i++) 
                 bestX[i] = X[i];
         }
@@ -93,6 +95,8 @@ int main() {
 #pragma region Demand points
 
 void loadDemandPoints() {
+    printf("loadDemandPoints START\n");
+
 	FILE *f;
 	f = fopen("demandPoints.dat", "r");
 	demandPoints = new double*[numDP];
@@ -101,9 +105,13 @@ void loadDemandPoints() {
 		fscanf(f, "%lf%lf%lf", &demandPoints[i][0], &demandPoints[i][1], &demandPoints[i][2]);
 	}
 	fclose(f);
+
+    printf("loadDemandPoints END\n");
 }
 
 void calculateDistances(){
+    printf("calculateDistances START\n");
+
 	//Memory
 	distances = new double*[numDP];
 	for (int i = 0; i < numDP; i++) 
@@ -121,6 +129,8 @@ void calculateDistances(){
 	}
 
 	distances[numDP - 1][numDP - 1] = 0;
+
+    printf("calculateDistances END\n");
 }
 
 double HaversineDistance(double* a, double* b) {
@@ -153,6 +163,8 @@ void randomSolution() {
 
 void generateSolution()
 {
+    printf("generateSolution START\n");
+
     //New seed on every call (?)
     srand((unsigned)time(0));
 
@@ -163,8 +175,8 @@ void generateSolution()
         {
             //Probability for change is 1/s
             //where s is numX
-            int probability = rand() % numX;
-            if (probability != 1)
+            int probabilityForChange = rand() % numX;
+            if (probabilityForChange != 1)
                 continue;
 
             /*  Notes to ask:
@@ -176,7 +188,7 @@ void generateSolution()
                     There is a possibility that the below cycle will not pick any location.
                     So, do/while is neccassary here too?
             */
-            for (int j = 0; j < numDP; j++) 
+            for (int j = 0; j < numCL; j++) 
             {
                 if (locationAvailable(j) == 0)
                     continue;
@@ -184,19 +196,22 @@ void generateSolution()
                 double locationProbability = 0;
                 //RDOA
                 if (GEN_SOLUTION == 0)
-                    locationProbability = ranks[j] / rankSum;
+                {
+                    //printf("strategy RDOA, ranks[j] = %d, rankSum = %d\n", ranks[j], rankSum);
+                    locationProbability = ranks[j] / (double)rankSum;
+                }
 
                 //RDOA-D
                 if (GEN_SOLUTION == 1)
                 {
                     double probabilityDenominator = 0;
-                    for (int z = 0; z < numDP; z++)
+                    for (int z = 0; z < numCL; z++)
                         probabilityDenominator += ranks[z] / distances[i][j];
 
                     locationProbability = ranks[j] / (distances[i][j] * probabilityDenominator);
                 }
 
-                if (rand() % 100 < (locationProbability * 100))
+                if ((rand() % 100) < (locationProbability * 100.0))
                 {
                     X[i] = j;
                     changed = 1;
@@ -206,6 +221,8 @@ void generateSolution()
         }
     }
     while (changed == 0);
+
+    printf("generateSolution END\n");
 }
 
 int locationAvailable(int location)
@@ -224,15 +241,14 @@ int locationAvailable(int location)
 double evaluateSolution() 
 {
 	double result = 0;
+    int bestPF;
+    int bestX;
+    double d;
 
     for (int i = 0; i < numDP; i++) 
     {
-        int bestPF;
-        int bestX;
-        double d;
-        bestPF = 1e5;
-
         // Nearest from current facility and preexisting
+        bestPF = 1e5;
         for (int j = 0; j < numPF; j++) 
         {
             d = distances[i][j];
@@ -256,7 +272,8 @@ double evaluateSolution()
             if (bestX < bestPF)
                 result += demandPoints[i][2];
             else if (bestX == bestPF) 
-                result += demandPoints[i][2] * ( 1 / (numF + 1)); // Fixed proportion - equal for every firm?
+                //result += demandPoints[i][2] * ( 1.0 / (numF + 1)); // Fixed proportion - equal for every firm?
+                result += 0.3 * demandPoints[i][2]; // Fixed proportion - 0.3?
         }
 
         //PartialyBinaryRule
@@ -267,7 +284,6 @@ double evaluateSolution()
 
             result += demandPoints[i][2] * (attractionCurrent / (attractionCurrent + (numF * attractionPreexisting)));
         }
-
     }
 
 	return result;
@@ -325,7 +341,7 @@ void updateRanks(int success)
     }
 
     if (zeroExists)
-        for(int i = 0; i < numDP; i++)
+        for(int i = 0; i < numCL; i++)
             ranks[i]++;
 }
 
