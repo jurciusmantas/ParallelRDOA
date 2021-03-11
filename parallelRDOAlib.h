@@ -1,0 +1,1 @@
+int rouletteWheel(double* probabilities, int count);

@@ -5,6 +5,7 @@
 #include <math.h>
 #include <time.h>
 #include <sys/time.h>
+#include "parallelRDOAlib.h"
 
 /*  
     GenSolution
@@ -12,20 +13,20 @@
     EvalSolution
     0 - BinaryRule, 1 - PartialyBinaryRule 
 */
-#define GEN_SOLUTION 1
-#define EVAL_SOLUTION 1
+#define GEN_SOLUTION 0
+#define EVAL_SOLUTION 0
+#define ITERS 10
 
 using namespace std;
 
-int numDP = 10000;      // Vietoviu skaicius (demand points, max 10000)
+int numDP = 100;      // Vietoviu skaicius (demand points, max 10000)
 int numPF = 5;          // Esanciu objektu skaicius (preexisting facilities)
 int numF  = 3;          // Esanciu imoniu skaicius (firms)
-int numCL = 50;         // Kandidatu naujiems objektams skaicius (candidate locations)
+int numCL = 25;         // Kandidatu naujiems objektams skaicius (candidate locations)
 int numX  = 3;          // Nauju objektu skaicius
 
 double **demandPoints, **distances;
 int *X, *bestX, *ranks;
-long rankSum;
 
 //=============================================================================
 
@@ -50,14 +51,10 @@ int main() {
 	bestX = new int[numX];
 	double bestU = -1;
     
-    //Init ranks and rankSum
-    rankSum = 0;
+    //Init ranks
     ranks = new int[numCL];
     for (int i = 0; i < numCL; i++)
-    {
         ranks[i] = i + 1;
-        rankSum += ranks[i];
-    }
 
     randomSolution();
     double u = evaluateSolution();
@@ -65,7 +62,7 @@ int main() {
     for (int i=0; i<numX; i++) 
         bestX[i] = X[i];
 	
-    for (int iters = 0; iters < 10000; iters++) {
+    for (int iters = 0; iters < ITERS; iters++) {
         printf("iteration - %d \n", iters);
         generateSolution();
         u = evaluateSolution();
@@ -165,7 +162,11 @@ void generateSolution()
 {
     printf("generateSolution START\n");
 
-    //New seed on every call (?)
+    cout << "X before genSolution = ";
+    for (int i = 0; i < numX; i++) cout << X[i] << " ";
+    cout << endl;
+
+    //New seed on every call
     srand((unsigned)time(0));
 
     int changed = 0;
@@ -179,26 +180,24 @@ void generateSolution()
             if (probabilityForChange != 1)
                 continue;
 
-            /*  Notes to ask:
-                1)  Is the probability to choose the location correct? The article states:
-                    'a single facility will be changed in average'
-                    What if none facilities will be changed? (--> thats why do/while, but is it optimal?)
-                
-                2)  If codeflow manages to come here (past the if above, do we MUST change this location?
-                    There is a possibility that the below cycle will not pick any location.
-                    So, do/while is neccassary here too?
-            */
-            for (int j = 0; j < numCL; j++) 
+            int rankSum = 0, locationProbabilitiesCount = 0, locationChanged = 0;
+            for (int j = 0; j < numCL; j++)
+            {
+                if (locationAvailable(j) == 1)
+                    rankSum += ranks[j];
+            }
+
+            double* locationProbabilities = new double[numCL];
+            for (int j = 0; j < numCL; j++)
             {
                 if (locationAvailable(j) == 0)
                     continue;
-
+                
                 double locationProbability = 0;
                 //RDOA
                 if (GEN_SOLUTION == 0)
                 {
-                    //printf("strategy RDOA, ranks[j] = %d, rankSum = %d\n", ranks[j], rankSum);
-                    locationProbability = ranks[j] / (double)rankSum;
+                    locationProbabilities[locationProbabilitiesCount] = ranks[j] / (double)rankSum;
                 }
 
                 //RDOA-D
@@ -208,19 +207,30 @@ void generateSolution()
                     for (int z = 0; z < numCL; z++)
                         probabilityDenominator += ranks[z] / distances[i][j];
 
-                    locationProbability = ranks[j] / (distances[i][j] * probabilityDenominator);
+                    locationProbabilities[locationProbabilitiesCount] = ranks[j] / (distances[i][j] * probabilityDenominator);
                 }
 
-                if ((rand() % 100) < (locationProbability * 100.0))
+                locationProbabilitiesCount++;
+            }
+
+            do
+            {
+                int pickLocation = rouletteWheel(locationProbabilities, locationProbabilitiesCount);
+                if (X[i] != pickLocation)
                 {
-                    X[i] = j;
+                    X[i] = pickLocation;
+                    locationChanged = 1;
                     changed = 1;
-                    break;
                 }
             }
+            while (locationChanged == 0);
         }
     }
     while (changed == 0);
+
+    cout << "X after genSolution = ";
+    for (int i = 0; i < numX; i++) cout << X[i] << " ";
+    cout << endl;
 
     printf("generateSolution END\n");
 }
