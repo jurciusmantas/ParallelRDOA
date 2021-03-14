@@ -5,7 +5,7 @@
 #include <math.h>
 #include <time.h>
 #include <sys/time.h>
-#include "parallelRDOAlib.h"
+#include "../Shared/parallelRDOAlib.h"
 
 /*  
     GenSolution
@@ -15,11 +15,11 @@
 */
 #define GEN_SOLUTION 0
 #define EVAL_SOLUTION 0
-#define ITERS 10
+#define ITERS 10000
 
 using namespace std;
 
-int numDP = 100;      // Vietoviu skaicius (demand points, max 10000)
+int numDP = 10000;      // Vietoviu skaicius (demand points, max 10000)
 int numPF = 5;          // Esanciu objektu skaicius (preexisting facilities)
 int numF  = 3;          // Esanciu imoniu skaicius (firms)
 int numCL = 25;         // Kandidatu naujiems objektams skaicius (candidate locations)
@@ -84,9 +84,13 @@ int main() {
             updateRanks(0);
     }
 
-	cout << "Geriausias sprendinys: ";
-	for (int i=0; i<numX; i++) cout << bestX[i] << " ";
-	cout << "(" << bestU << ")" << endl << "Skaiciavimo trukme: " << getTime() - ts_start << endl;
+    // Write results
+    ofstream resultsFile;
+    resultsFile.open("results.txt", ios_base::app);
+	for (int i=0; i<numX; i++) 
+        resultsFile << bestX[i] << " ";
+
+	resultsFile << "(" << bestU << "), " << getTime() - ts_start << endl;
 }
 
 #pragma region Demand points
@@ -95,7 +99,7 @@ void loadDemandPoints() {
     printf("loadDemandPoints START\n");
 
 	FILE *f;
-	f = fopen("demandPoints.dat", "r");
+	f = fopen("../demandPoints.dat", "r");
 	demandPoints = new double*[numDP];
 	for (int i=0; i<numDP; i++) {
 		demandPoints[i] = new double[3];
@@ -162,10 +166,6 @@ void generateSolution()
 {
     printf("generateSolution START\n");
 
-    cout << "X before genSolution = ";
-    for (int i = 0; i < numX; i++) cout << X[i] << " ";
-    cout << endl;
-
     //New seed on every call
     srand((unsigned)time(0));
 
@@ -227,10 +227,6 @@ void generateSolution()
         }
     }
     while (changed == 0);
-
-    cout << "X after genSolution = ";
-    for (int i = 0; i < numX; i++) cout << X[i] << " ";
-    cout << endl;
 
     printf("generateSolution END\n");
 }
