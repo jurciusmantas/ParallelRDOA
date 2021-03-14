@@ -107,54 +107,49 @@ void generateSolution(int numX, int numCL, int* X, int* bestX, int* ranks, doubl
         {
             //Probability for change is 1/s
             //where s is numX
-            int probabilityForChange = rand() % numX;
-            if (probabilityForChange != 1)
+            double probabilityForChange = rand() / (double) RAND_MAX;
+            if (probabilityForChange > (1.0 / numX))
                 continue;
 
-            int rankSum = 0, locationProbabilitiesCount = 0, locationChanged = 0;
-            for (int j = 0; j < numCL; j++)
-            {
-                if (locationAvailable(j, numX, X, bestX) == 1)
-                    rankSum += ranks[j];
-            }
+            // rankSum is only used with RDOA (gen_solution_mode = 0)
+            int rankSum = 0;
+            if (gen_solution_mode == 0)
+                for (int j = 0; j < numCL; j++)
+                {
+                    if (locationAvailable(j, numX, X, bestX) == 1)
+                        rankSum += ranks[j];
+                }
 
             double* locationProbabilities = new double[numCL];
             for (int j = 0; j < numCL; j++)
             {
                 if (locationAvailable(j, numX, X, bestX) == 0)
+                {
+                    locationProbabilities[j] = 0;
                     continue;
+                }
                 
-                double locationProbability = 0;
                 //RDOA
                 if (gen_solution_mode == 0)
-                {
-                    locationProbabilities[locationProbabilitiesCount] = ranks[j] / (double)rankSum;
-                }
+                    locationProbabilities[j] = ranks[j] / (double)rankSum;
 
                 //RDOA-D
                 if (gen_solution_mode == 1)
                 {
-                    double probabilityDenominator = 0;
+                    double probabilityDenominator = 0.0;
                     for (int z = 0; z < numCL; z++)
-                        probabilityDenominator += ranks[z] / distances[i][j];
+                    {
+                        if (locationAvailable(z, numX, X, bestX) == 1)
+                            probabilityDenominator += ranks[z] / distances[z][X[i]];
+                    }
 
-                    locationProbabilities[locationProbabilitiesCount] = ranks[j] / (distances[i][j] * probabilityDenominator);
-                }
-
-                locationProbabilitiesCount++;
-            }
-
-            do
-            {
-                int pickLocation = rouletteWheel(locationProbabilities, locationProbabilitiesCount);
-                if (X[i] != pickLocation)
-                {
-                    X[i] = pickLocation;
-                    locationChanged = 1;
-                    changed = 1;
+                    locationProbabilities[j] = ranks[j] / (distances[j][X[i]] * probabilityDenominator);
                 }
             }
-            while (locationChanged == 0);
+
+            int pickLocation = rouletteWheel(locationProbabilities, numCL);
+            X[i] = pickLocation;
+            changed = 1;
         }
     }
     while (changed == 0);
