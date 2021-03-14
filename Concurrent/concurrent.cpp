@@ -28,17 +28,12 @@ int numX  = 3;          // Nauju objektu skaicius
 double **demandPoints, **distances;
 int *X, *bestX, *ranks;
 
-//=============================================================================
-
-void calculateDistances();
 void updateRanks(int success);
-
-//=============================================================================
 
 int main() {
     double ts_start = getTime();
 	loadDemandPoints(numDP, &demandPoints);
-	calculateDistances();
+	calculateDistances(numDP, &distances, demandPoints);
 	
     X = new int[numX];
 	bestX = new int[numX];
@@ -84,30 +79,6 @@ int main() {
         resultsFile << bestX[i] << " ";
 
 	resultsFile << "(" << bestU << "), " << getTime() - ts_start << endl;
-}
-
-void calculateDistances(){
-    cout << "calculateDistances START" << endl;
-
-	//Memory
-	distances = new double*[numDP];
-	for (int i = 0; i < numDP; i++) 
-		distances[i] = new double[numDP];
-
-	//Calculation
-	for (int iIters = 0; iIters < numDP - 1; iIters++){
-		distances[iIters][iIters] = 0;
-
-		for (int jIters=iIters + 1; jIters<numDP; jIters++){
-			double distance = HaversineDistance(demandPoints[iIters], demandPoints[jIters]);
-			distances[iIters][jIters] = distance;
-			distances[jIters][iIters] = distance;
-		}
-	}
-
-	distances[numDP - 1][numDP - 1] = 0;
-
-    cout << "calculateDistances END" << endl;
 }
 
 void updateRanks(int success)

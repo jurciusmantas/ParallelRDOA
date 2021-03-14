@@ -1,6 +1,7 @@
 double getTime();
-void loadDemandPoints(int numDP, double*** demandPoints);
 double HaversineDistance(double* a, double* b);
+void loadDemandPoints(int numDP, double*** demandPoints);
+void calculateDistances(int numDP, double*** distances, double** demandPoints);
 
 void randomSolution(int numCL, int numX, int* X);
 int rouletteWheel(double* probabilities, int count);

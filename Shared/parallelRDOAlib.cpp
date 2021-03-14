@@ -36,6 +36,31 @@ void loadDemandPoints(int numDP, double*** demandPoints) {
     std::cout << "loadDemandPoints END" << std::endl;
 }
 
+
+void calculateDistances(int numDP, double*** distances, double** demandPoints){
+    std::cout << "calculateDistances START" << std::endl;
+
+	//Memory
+	*distances = new double*[numDP];
+	for (int i = 0; i < numDP; i++) 
+		(*distances)[i] = new double[numDP];
+
+	//Calculation
+	for (int iIters = 0; iIters < numDP - 1; iIters++){
+		(*distances)[iIters][iIters] = 0;
+
+		for (int jIters=iIters + 1; jIters<numDP; jIters++){
+			double distance = HaversineDistance(demandPoints[iIters], demandPoints[jIters]);
+			(*distances)[iIters][jIters] = distance;
+			(*distances)[jIters][iIters] = distance;
+		}
+	}
+
+	(*distances)[numDP - 1][numDP - 1] = 0;
+
+    std::cout << "calculateDistances END" << std::endl;
+}
+
 int rouletteWheel(double* probabilities, int count)
 {
     double rndNumber = rand() / (double) RAND_MAX;
@@ -204,3 +229,4 @@ double evaluateSolution(int numX, int numDP, int numPF, int numF, int* X, double
 
 	return result;
 }
+
