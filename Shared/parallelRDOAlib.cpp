@@ -63,7 +63,7 @@ void calculateDistances(int numDP, double*** distances, double** demandPoints){
 
 int rouletteWheel(double* probabilities, int count)
 {
-    double rndNumber = rand() / (double) RAND_MAX;
+    double rndNumber = (double)rand() / RAND_MAX;
     double offset = 0.0;
     int pick = 0;
 
@@ -96,9 +96,6 @@ int locationAvailable(int location, int numX, int *X, int* bestX)
 void generateSolution(int numX, int numCL, int* X, int* bestX, int* ranks, double** distances, int gen_solution_mode)
 {
     std::cout << "generateSolution START" << std::endl;
-
-    //New seed on every call
-    srand((unsigned)time(0));
 
     int changed = 0;
     do

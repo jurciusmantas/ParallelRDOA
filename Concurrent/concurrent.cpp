@@ -32,6 +32,10 @@ void updateRanks(int success);
 
 int main() {
     double ts_start = getTime();
+
+    //New seed on every run
+    srand((unsigned)time(0));
+    
 	loadDemandPoints(numDP, &demandPoints);
 	calculateDistances(numDP, &distances, demandPoints);
 	

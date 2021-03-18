@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <float.h>
-#include "populationLib.h"
+#include "populationlib.h"
 
 #pragma region Helpers
 
@@ -81,7 +81,7 @@ void insert(populationItem* population, int* locations, int numX, double solutio
             }
         }
 
-        if (worstIndex > 0 && solution > worst)
+        if (worstIndex > -1 && solution > worst)
         {
             for (int j = 0; j < numX; j++)
                 population[worstIndex].locations[j] = locations[j];

@@ -35,10 +35,14 @@ populationItem* population;
 int itemsInPopulation = 0;
 int timesPopulationSaved = 0;
 
-void updateRanks(int success);
+void updateRanks(bool success);
 
 int main() {
     double ts_start = getTime();
+
+    //New seed on every run
+    srand((unsigned)time(0));
+
 	loadDemandPoints(numDP, &demandPoints);
 	calculateDistances(numDP, &distances, demandPoints);
 
@@ -68,22 +72,20 @@ int main() {
         populationItem popItem = search(population, POP_SIZE, X, numX);
         if (popItem.solution > -1.0)
         {
-            cout << "----item found in population----" << endl;
+            /* Generated solution was found in population */
             u = popItem.solution;
             timesPopulationSaved++;
         }
         else
         {
+            /* Generated solution was not found in population */
             u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, EVAL_SOLUTION);
-
-            cout << "not found" << endl << "itemsInPopulation BEFORE = " << itemsInPopulation << endl;
             insert(population, X, numX, u, &itemsInPopulation, POP_SIZE);
-            cout << "itemsInPopulation AFTER = " << itemsInPopulation << endl;
         }
 
         if (u > bestU) 
         {
-            updateRanks(1);
+            updateRanks(true);
             bestU = u;
 
             /*  Note:
@@ -95,36 +97,25 @@ int main() {
                 bestX[i] = X[i];
         }
         else
-            updateRanks(0);
-    }
-
-    // TEST - print population
-    cout << "POPULATION:" << endl;
-    for (int i = 0; i < itemsInPopulation; i++)
-    {
-        cout << i << " : ";
-        for (int j = 0; j < numX; j++)
-            cout << population[i].locations[j] << " ";
-
-        cout << "(" << population[i].solution << ")" << endl;
+            updateRanks(false);
     }
 
     // Write results
     ofstream resultsFile;
     resultsFile.open("results.txt", ios_base::app);
 	for (int i=0; i<numX; i++) 
-        resultsFile << bestX[i] << " ";
-
-	resultsFile << "(" << bestU << "), " << getTime() - ts_start << endl;
+        resultsFile << bestX[i] << ", ";
+    
+	resultsFile << timesPopulationSaved << ", " << bestU << ", " << getTime() - ts_start << endl;
 }
 
-void updateRanks(int success)
+void updateRanks(bool success)
 {
     int zeroExists = 0;
 
     for (int i = 0; i < numX; i++)
     {
-        if (success == 1)
+        if (success)
         {
             ranks[X[i]]++;
 
@@ -147,7 +138,7 @@ void updateRanks(int success)
             }
         }
 
-        if (success == 0)
+        if (!success)
         {
             //Search if bestX contains X[i]
             int contains = 0;
