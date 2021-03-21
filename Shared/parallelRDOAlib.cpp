@@ -37,7 +37,8 @@ void loadDemandPoints(int numDP, double*** demandPoints) {
 }
 
 
-void calculateDistances(int numDP, double*** distances, double** demandPoints){
+void calculateDistances(int numDP, double*** distances, double** demandPoints)
+{
     std::cout << "calculateDistances START" << std::endl;
 
 	//Memory
@@ -174,19 +175,25 @@ void randomSolution(int numCL, int numX, int* X) {
 double evaluateSolution(int numX, int numDP, int numPF, int numF, int* X, double** demandPoints, double** distances, int eval_solution_mode) 
 {
 	double result = 0;
-    int bestPF;
+    int* bestPFs;
     int bestCX;
     double d;
 
     for (int i = 0; i < numDP; i++) 
     {
-        // Nearest from current facility and preexisting
-        bestPF = 1e5;
-        for (int j = 0; j < numPF; j++) 
+        bestPFs = new int[numF];
+
+        // Nearest from current facility and preexisting firms
+        for (int preexistingIndex = 0; preexistingIndex < numF; preexistingIndex++)
         {
-            d = distances[i][j];
-            if (d < bestPF)
-                bestPF = d;
+            double bestPF = 1e5;
+            for (int j = 0; j < numPF; j++)
+            {
+                d = distances[i][preexistingIndex + (j * numF)];
+                if (d < bestPF)
+                    bestPF = d;
+            }
+            bestPFs[preexistingIndex] = bestPF;
         }
 
         // Nearest from current facility and solution
@@ -198,25 +205,45 @@ double evaluateSolution(int numX, int numDP, int numPF, int numF, int* X, double
                 bestCX = d;
         }
 
-        //Binary rule
+        /* Binary rule */
         if (eval_solution_mode == 0)
         {
-            // Attraction is 1/(1 + distance), so smaller distance the better
-            if (bestCX < bestPF)
-                result += demandPoints[i][2];
-            else if (bestCX == bestPF) 
-                //result += demandPoints[i][2] * ( 1.0 / (numF + 1)); // Fixed proportion - equal for every firm?
-                result += 0.3 * demandPoints[i][2]; // Fixed proportion - 0.3?
+            bool smallerExists = false;
+            bool equalExists = false;
+            for (int j = 0; j < numF; j++)
+            {
+                if (bestCX > bestPFs[j])
+                {
+                    smallerExists = true;
+                    break;
+                }
+                else if (bestCX == bestPFs[j])
+                    equalExists = true;
+            }
+
+            if (!smallerExists)
+            {
+                if (!equalExists)
+                    // Attraction is 1/(1 + distance), so smaller distance the better
+                    result += demandPoints[i][2];
+                else
+                    //result += demandPoints[i][2] * ( 1.0 / (numF + 1)); // Fixed proportion - equal for every firm?
+                    result += 0.3 * demandPoints[i][2]; // Fixed proportion - 0.3?
+            }
         }
 
-        //PartialyBinaryRule
+        /* PartialyBinaryRule */
         if (eval_solution_mode == 1)
         {
             double attractionCurrent = 1.0 / (1 + bestCX);
-            double attractionPreexisting = 1.0 / (1 + bestPF);
+            double sumAttractionPreexisting = 0.0;
+            for (int j = 0; j < numF; j++)
+                sumAttractionPreexisting += 1.0 / (1 + bestPFs[j]);
 
-            result += demandPoints[i][2] * (attractionCurrent / (attractionCurrent + (numF * attractionPreexisting)));
+            result += demandPoints[i][2] * (attractionCurrent / (attractionCurrent + sumAttractionPreexisting));
         }
+
+        delete bestPFs;
     }
 
 	return result;
