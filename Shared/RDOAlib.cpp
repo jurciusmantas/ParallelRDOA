@@ -3,7 +3,7 @@
 #include <iostream>
 #include <math.h>
 #include <sys/time.h>
-#include "parallelRDOAlib.h"
+#include "RDOAlib.h"
 
 double getTime() {
    struct timeval laikas;
@@ -35,7 +35,6 @@ void loadDemandPoints(int numDP, double*** demandPoints) {
 
     std::cout << "loadDemandPoints END" << std::endl;
 }
-
 
 void calculateDistances(int numDP, double*** distances, double** demandPoints)
 {
@@ -248,4 +247,3 @@ double evaluateSolution(int numX, int numDP, int numPF, int numF, int* X, double
 
 	return result;
 }
-

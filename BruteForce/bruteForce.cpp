@@ -4,14 +4,14 @@
 #include <math.h>
 #include <time.h>
 #include <sys/time.h>
-#include "../Shared/parallelRDOAlib.h"
+#include "../Shared/RDOAlib.h"
 
 /*  
     EvalSolution
     0 - BinaryRule, 1 - PartialyBinaryRule 
 */
 
-#define EVAL_SOLUTION 0
+#define EVAL_SOLUTION 1
 
 using namespace std;
 

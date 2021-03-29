@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <sys/time.h>
-#include "../Shared/parallelRDOAlib.h"
+#include "../Shared/RDOAlib.h"
 #include "../Shared/populationLib.h"
 
 /*  
