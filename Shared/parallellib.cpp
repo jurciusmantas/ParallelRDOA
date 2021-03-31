@@ -10,7 +10,7 @@
 
 void calculateDistancesAsync(int numDP, int numProcs, int id, double** distances, double** demandPoints)
 {
-    std::cout << "calculateDistances START" << std::endl;
+    std::cout << id << ": calculateDistances START" << std::endl;
 
 	//Allocate memory and fill 0's
 	*distances = (double*) calloc(numDP * numDP, sizeof(double));;
@@ -33,6 +33,6 @@ void calculateDistancesAsync(int numDP, int numProcs, int id, double** distances
 	std::cout << id << ": got to calculateDistances barrier" << std::endl;
 	MPI_Barrier(MPI_COMM_WORLD);
 		
-	MPI_Allgather(distances+(offsetForCalc * numDP), procChunkSizeForCalc * numDP, 
-		MPI_DOUBLE, distances, procChunkSizeForCalc * numDP, MPI_DOUBLE, MPI_COMM_WORLD);
+	MPI_Allgather(*(distances)+(offsetForCalc * numDP), procChunkSizeForCalc * numDP, 
+		MPI_DOUBLE, *distances, procChunkSizeForCalc * numDP, MPI_DOUBLE, MPI_COMM_WORLD);
 }

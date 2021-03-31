@@ -59,12 +59,15 @@ int main(int argc , char * argv []) {
 	loadDemandPoints(numDP, &demandPoints);
 	calculateDistancesAsync(numDP, numProcs, id, &distances, demandPoints);
 
-    ofstream distancesFile;
-    distancesFile.open("distances.txt", ios_base::app);
-    for (int i = 0; i < numDP; i ++){
-        for (int j = 0; j < numDP; j++)
-            distancesFile << distances[numDP * i + j] << ", ";
-        distancesFile << endl;
+    if (id == 0)
+    {
+        ofstream distancesFile;
+        distancesFile.open("distances.txt", ios_base::app);
+        for (int i = 0; i < numDP; i ++){
+            for (int j = 0; j < numDP; j++)
+                distancesFile << distances[numDP * i + j] << ", ";
+            distancesFile << endl;
+        }
     }
 
     initPopulation(&population, POP_SIZE, numX);

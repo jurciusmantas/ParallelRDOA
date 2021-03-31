@@ -19,8 +19,8 @@ using namespace std;
 int numDP = 10000;      // Vietoviu skaicius (demand points, max 10000)
 int numPF = 5;         // Esanciu objektu skaicius (preexisting facilities)
 int numF  = 3;          // Esanciu imoniu skaicius (firms)
-int numCL = 25;        // Kandidatu naujiems objektams skaicius (candidate locations)
-int numX  = 3;         // Nauju objektu skaicius
+int numCL = 5000;        // Kandidatu naujiems objektams skaicius (candidate locations)
+int numX  = 10;         // Nauju objektu skaicius
 
 double **demandPoints, **distances;
 int *X, *bestX;
