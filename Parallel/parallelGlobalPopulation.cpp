@@ -40,6 +40,7 @@ int timesPopulationSaved = 0;
 
 // Parallel variables
 int id, numProcs, offset, procChunkSize;
+MPI_Datatype population_dt;
 MPI_Status *statuses;
 MPI_Request *requests;
 MPI_Status status;
@@ -54,38 +55,61 @@ int main(int argc , char * argv []) {
     double ts_start = getTime();
 
     //New seed on every run
-    srand((unsigned)time(0));
+    srand((unsigned)time(0) * (id + 1));
 
 	loadDemandPoints(numDP, &demandPoints);
 	calculateDistancesAsync(numDP, numProcs, id, &distances, demandPoints);
 
-    if (id == 0)
-    {
-        ofstream distancesFile;
-        distancesFile.open("distances.txt", ios_base::app);
-        for (int i = 0; i < numDP; i ++){
-            for (int j = 0; j < numDP; j++)
-                distancesFile << distances[numDP * i + j] << ", ";
-            distancesFile << endl;
-        }
-    }
-
+    initPopulationStructToMPI(&population_dt, numX);
     initPopulation(&population, POP_SIZE, numX);
 	
-    // X = new int[numX];
-	// bestX = new int[numX];
-	// double bestU = -1;
+    X = new int[numX];
+	bestX = new int[numX];
+	double bestU = -1;
     
-    // //Init ranks
-    // ranks = new int[numCL];
-    // for (int i = 0; i < numCL; i++)
-    //     ranks[i] = i + 1;
+    //Init ranks
+    ranks = new int[numCL];
+    for (int i = 0; i < numCL; i++)
+        ranks[i] = i + 1;
+    
+    randomSolution(numCL, numX, X);
+    double u = evaluateSolution_1D(numX, numDP, numPF, numF, X, demandPoints, distances, 1, EVAL_SOLUTION);
 
-    // randomSolution(numCL, numX, X);
-    // double u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, EVAL_SOLUTION);
+    populationItem tempItemToSend;
+    tempItemToSend.solution = u;
+    tempItemToSend.locations = new int[numX];
+    for (int i = 0; i < numX; i++)
+        tempItemToSend.locations[i] = X[i];
+
+    cout << id << ": before MPI_Allgather" << endl;
+    cout << id << ": population item = " << tempItemToSend.solution << " (";
+    for (int i = 0; i < numX; i++)
+        cout << tempItemToSend.locations[i] << ", ";
+    cout << " )" << endl;
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Allgather(&tempItemToSend, 1, population_dt, population, 1, population_dt, MPI_COMM_WORLD);
+    
+    cout << id << ": after MPI_Allgather" << endl;
+    cout << "------------------------" << endl;
+
+    if (id == 0)
+    {
+        cout << "numProcs = " << numProcs << endl;
+        cout << "populationLenght = " << *(&population + 1) - population << endl;
+
+        for (int i = 0; i < numProcs; i++)
+        {
+            cout << i << ": " << population[i].solution << " | (";
+            for (int j = 0; j < numX; j++)
+                cout << population[i].locations[j] << ", ";
+            cout << " )" << endl;
+        }
+    }
     // bestU = u;
     // for (int i = 0; i < numX; i++) 
     //     bestX[i] = X[i];
+
 	
     // for (int iters = 0; iters < ITERS; iters++) {
     //     printf("iteration - %d \n", iters);
@@ -124,15 +148,17 @@ int main(int argc , char * argv []) {
     //         updateRanks(false);
     // }
 
-    // // Write results
+    // Write results
     // ofstream resultsFile;
     // resultsFile.open("results.txt", ios_base::app);
 	// for (int i=0; i<numX; i++) 
     //     resultsFile << bestX[i] << ", ";
     
 	// resultsFile << timesPopulationSaved << ", " << bestU << ", " << getTime() - ts_start << endl;
+    // resultsFile.close();
 
     MPI_Finalize();
+    return 0;
 }
 
 void updateRanks(bool success)

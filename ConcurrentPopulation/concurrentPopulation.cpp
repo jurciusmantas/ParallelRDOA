@@ -62,6 +62,7 @@ int main() {
     bestU = u;
     for (int i = 0; i < numX; i++) 
         bestX[i] = X[i];
+    insert(population, X, numX, u, &itemsInPopulation, POP_SIZE);
 	
     for (int iters = 0; iters < ITERS; iters++) {
         printf("iteration - %d \n", iters);

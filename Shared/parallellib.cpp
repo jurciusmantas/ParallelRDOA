@@ -7,6 +7,24 @@
 #include <omp.h>
 #include <mpi.h>
 #include "RDOAlib.h"
+#include "populationlib.h"
+
+void initPopulationStructToMPI(MPI_Datatype* population_dt, int numX)
+{
+	MPI_Aint displacements[2]  = { offsetof(populationItem, solution), offsetof(populationItem, locations) };
+  	int block_lengths[2]  = { 1, numX };
+  	MPI_Datatype types[2] = { MPI_DOUBLE, MPI_INT };
+
+  	int createStructRes = MPI_Type_create_struct(2, block_lengths, displacements, types, &(*population_dt));
+	if (createStructRes == MPI_SUCCESS)
+		std::cout << "initPopulationStructToMPI - SUCCESS" << std::endl;
+	else
+	{
+		std::cout << "initPopulationStructToMPI - error : " << createStructRes << std::endl;
+		abort();
+	}
+  	MPI_Type_commit(&(*population_dt));
+}
 
 void calculateDistancesAsync(int numDP, int numProcs, int id, double** distances, double** demandPoints)
 {

@@ -171,6 +171,31 @@ void randomSolution(int numCL, int numX, int* X) {
 
 #pragma endregion
 
+#pragma region Evaluate solution
+
+double GetDistance(void* distances, int distancesDim, int i, int j, int numDP)
+{
+    double result;
+
+    if (distancesDim == 1)
+    {
+        double* castedDistances = (double*)distances;
+        result = castedDistances[i * numDP + j];
+        if (result == 0)
+            result = castedDistances[j * numDP + i];
+    }
+
+    if (distancesDim == 2)
+    {
+        double** castedDistances = (double**)distances;
+        result = castedDistances[i][j];
+        if (result == 0)
+            result = castedDistances[j][i];
+    }
+
+    return result;
+}
+
 double evaluateSolution(int numX, int numDP, int numPF, int numF, int* X, double** demandPoints, double** distances, int eval_solution_mode) 
 {
 	double result = 0;
@@ -247,3 +272,86 @@ double evaluateSolution(int numX, int numDP, int numPF, int numF, int* X, double
 
 	return result;
 }
+
+double evaluateSolution_1D(int numX, int numDP, int numPF, int numF, int* X, double** demandPoints, void* distances, int distancesDim, int eval_solution_mode) 
+{
+	double result = 0;
+    int* bestPFs;
+    int bestCX;
+    double d;
+
+    for (int i = 0; i < numDP; i++) 
+    {
+        bestPFs = new int[numF];
+
+        // Nearest from current facility and preexisting firms
+        for (int preexistingIndex = 0; preexistingIndex < numF; preexistingIndex++)
+        {
+            double bestPF = 1e5;
+            for (int j = 0; j < numPF; j++)
+            {
+                //d = GetDistance(distances, distancesDim, i, j,);
+                d = GetDistance(distances, distancesDim, i, preexistingIndex + (j * numF), numDP);
+
+                //d = distances[i][preexistingIndex + (j * numF)];
+                if (d < bestPF)
+                    bestPF = d;
+            }
+            bestPFs[preexistingIndex] = bestPF;
+        }
+
+        // Nearest from current facility and solution
+        bestCX = 1e5;
+        for (int j = 0; j < numX; j++) 
+        {
+            //d = distances[i][X[j]];
+            d = GetDistance(distances, distancesDim, i, X[j], numDP);
+            if (d < bestCX) 
+                bestCX = d;
+        }
+
+        /* Binary rule */
+        if (eval_solution_mode == 0)
+        {
+            bool smallerExists = false;
+            bool equalExists = false;
+            for (int j = 0; j < numF; j++)
+            {
+                if (bestCX > bestPFs[j])
+                {
+                    smallerExists = true;
+                    break;
+                }
+                else if (bestCX == bestPFs[j])
+                    equalExists = true;
+            }
+
+            if (!smallerExists)
+            {
+                if (!equalExists)
+                    // Attraction is 1/(1 + distance), so smaller distance the better
+                    result += demandPoints[i][2];
+                else
+                    //result += demandPoints[i][2] * ( 1.0 / (numF + 1)); // Fixed proportion - equal for every firm?
+                    result += 0.3 * demandPoints[i][2]; // Fixed proportion - 0.3?
+            }
+        }
+
+        /* PartialyBinaryRule */
+        if (eval_solution_mode == 1)
+        {
+            double attractionCurrent = 1.0 / (1 + bestCX);
+            double sumAttractionPreexisting = 0.0;
+            for (int j = 0; j < numF; j++)
+                sumAttractionPreexisting += 1.0 / (1 + bestPFs[j]);
+
+            result += demandPoints[i][2] * (attractionCurrent / (attractionCurrent + sumAttractionPreexisting));
+        }
+
+        delete bestPFs;
+    }
+
+	return result;
+}
+
+#pragma endregion
