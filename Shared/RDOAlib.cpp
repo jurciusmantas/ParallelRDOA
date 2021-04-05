@@ -91,6 +91,29 @@ int locationAvailable(int location, int numX, int *X, int* bestX)
     return 1;
 }
 
+double GetDistance(void* distances, int distancesDim, int i, int j, int numDP)
+{
+    double result;
+
+    if (distancesDim == 1)
+    {
+        double* castedDistances = (double*)distances;
+        result = castedDistances[i * numDP + j];
+        if (result == 0)
+            result = castedDistances[j * numDP + i];
+    }
+
+    if (distancesDim == 2)
+    {
+        double** castedDistances = (double**)distances;
+        result = castedDistances[i][j];
+        if (result == 0)
+            result = castedDistances[j][i];
+    }
+
+    return result;
+}
+
 #pragma region Generate solution
 
 void generateSolution(int numX, int numCL, int* X, int* bestX, int* ranks, double** distances, int gen_solution_mode)
@@ -154,6 +177,69 @@ void generateSolution(int numX, int numCL, int* X, int* bestX, int* ranks, doubl
     std::cout << "generateSolution END" << std::endl;
 }
 
+void generateSolution_1D(int numX, int numDP, int numCL, int* X, int* bestX, int* ranks, void* distances, int distancesDim, int gen_solution_mode)
+{
+    std::cout << "generateSolution START" << std::endl;
+
+    int changed = 0;
+    do
+    {
+        for (int i = 0; i < numX; i ++)
+        {
+            //Probability for change is 1/s
+            //where s is numX
+            double probabilityForChange = rand() / (double) RAND_MAX;
+            if (probabilityForChange > (1.0 / numX))
+                continue;
+
+            // rankSum is only used with RDOA (gen_solution_mode = 0)
+            int rankSum = 0;
+            if (gen_solution_mode == 0)
+                for (int j = 0; j < numCL; j++)
+                {
+                    if (locationAvailable(j, numX, X, bestX) == 1)
+                        rankSum += ranks[j];
+                }
+
+            double* locationProbabilities = new double[numCL];
+            for (int j = 0; j < numCL; j++)
+            {
+                if (locationAvailable(j, numX, X, bestX) == 0)
+                {
+                    locationProbabilities[j] = 0;
+                    continue;
+                }
+                
+                //RDOA
+                if (gen_solution_mode == 0)
+                    locationProbabilities[j] = ranks[j] / (double)rankSum;
+
+                //RDOA-D
+                if (gen_solution_mode == 1)
+                {
+                    double probabilityDenominator = 0.0;
+                    for (int z = 0; z < numCL; z++)
+                    {
+                        if (locationAvailable(z, numX, X, bestX) == 1)
+                            //probabilityDenominator += ranks[z] / distances[z][X[i]];
+                            probabilityDenominator += ranks[z] / GetDistance(distances, distancesDim, z, X[i], numDP);
+                    }
+
+                    //locationProbabilities[j] = ranks[j] / (distances[j][X[i]] * probabilityDenominator);
+                    locationProbabilities[j] = ranks[j] / (GetDistance(distances, distancesDim, j, X[i], numDP) * probabilityDenominator);
+                }
+            }
+
+            int pickLocation = rouletteWheel(locationProbabilities, numCL);
+            X[i] = pickLocation;
+            changed = 1;
+        }
+    }
+    while (changed == 0);
+
+    std::cout << "generateSolution END" << std::endl;
+}
+
 void randomSolution(int numCL, int numX, int* X) {
 	int unique;
 	for (int i=0; i<numX; i++) {
@@ -172,29 +258,6 @@ void randomSolution(int numCL, int numX, int* X) {
 #pragma endregion
 
 #pragma region Evaluate solution
-
-double GetDistance(void* distances, int distancesDim, int i, int j, int numDP)
-{
-    double result;
-
-    if (distancesDim == 1)
-    {
-        double* castedDistances = (double*)distances;
-        result = castedDistances[i * numDP + j];
-        if (result == 0)
-            result = castedDistances[j * numDP + i];
-    }
-
-    if (distancesDim == 2)
-    {
-        double** castedDistances = (double**)distances;
-        result = castedDistances[i][j];
-        if (result == 0)
-            result = castedDistances[j][i];
-    }
-
-    return result;
-}
 
 double evaluateSolution(int numX, int numDP, int numPF, int numF, int* X, double** demandPoints, double** distances, int eval_solution_mode) 
 {

@@ -6,7 +6,7 @@
 #include <sys/time.h>
 #include <omp.h>
 #include <mpi.h>
-#include <cstddef>
+#include <sstream>
 #include "../Shared/RDOAlib.h"
 #include "../Shared/populationlib.h"
 #include "../Shared/parallellib.h"
@@ -19,21 +19,21 @@
 */
 #define GEN_SOLUTION 0
 #define EVAL_SOLUTION 0
-#define ITERS 100
+#define ITERS 10000
 #define POP_SIZE 50
 
 using namespace std;
 
 /* Configuration */
-int numDP   = 100;      // Vietoviu skaicius (demand points, max 10000)
+int numDP   = 10000;      // Vietoviu skaicius (demand points, max 10000)
 int numPF   = 5;          // Esanciu objektu skaicius (preexisting facilities)
 int numF    = 3;          // Esanciu imoniu skaicius (firms)
 int numCL   = 25;         // Kandidatu naujiems objektams skaicius (candidate locations)
-constexpr int numX    = 5;          // Nauju objektu skaicius
+constexpr int numX    = 3;          // Nauju objektu skaicius
 
 double **demandPoints, *distances;
 int *X, *bestX, *ranks;
-
+double best
 
 // Population variables
 populationItem* population;
@@ -48,7 +48,10 @@ MPI_Status *statuses;
 MPI_Request *requests;
 MPI_Status status;
 
+//-------
+
 void updateRanks(bool success);
+void exchangeFirstSolutions();
 
 int main(int argc , char * argv []) {
     MPI_Init(&argc , &argv);
@@ -70,16 +73,75 @@ int main(int argc , char * argv []) {
 
     X = new int[numX];
 	bestX = new int[numX];
-	double bestU = -1;
+	bestU = -1;
+    double u;
     
     //Init ranks
     ranks = new int[numCL];
     for (int i = 0; i < numCL; i++)
         ranks[i] = i + 1;
+
+    exchangeFirstSolutions();
+	
+    for (int iters = 0; iters < ITERS; iters++) {
+        printf("iteration - %d \n", iters);
+        
+        generateSolution_1D(numX, numDP, numCL, X, bestX, ranks, distances, 1, GEN_SOLUTION);
+
+        //Search for solution in population
+        populationItem popItem = search(population, POP_SIZE, X, numX);
+        if (popItem.solution > -1.0)
+        {
+            /* Generated solution was found in population */
+            u = popItem.solution;
+            timesPopulationSaved++;
+        }
+        else
+        {
+            /* Generated solution was not found in population */
+            u = evaluateSolution_1D(numX, numDP, numPF, numF, X, demandPoints, distances, 1, EVAL_SOLUTION);
+            insert(population, X, numX, u, &itemsInPopulation, POP_SIZE);
+        }
+
+        if (u > bestU) 
+        {
+            updateRanks(true);
+            bestU = u;
+
+            /*  Note:
+                Shouldn't we generate the solution BEFORE assigning X = X'?
+                If we do it affter assigning, the locations that were in X but weren't in X'
+                become available to pick.
+            */
+            for (int i = 0; i < numX; i++) 
+                bestX[i] = X[i];
+        }
+        else
+            updateRanks(false);
+    }
+
+    // Write results
+    ofstream resultsFile;
+    stringstream fileName;
+    fileName << "resultsProc" << id << ".txt" << endl;
+    resultsFile.open(fileName.str(), ios_base::app);
+	for (int i=0; i<numX; i++) 
+        resultsFile << bestX[i] << ", ";
     
+	resultsFile << bestU << ", " << timesPopulationSaved << ", " << getTime() - ts_start << endl;
+    resultsFile.close();
+
+    MPI_Finalize();
+    return 0;
+}
+
+void exchangeFirstSolutions()
+{
     randomSolution(numCL, numX, X);
     double u = evaluateSolution_1D(numX, numDP, numPF, numF, X, demandPoints, distances, 1, EVAL_SOLUTION);
 
+    // Convert populationItem to array
+    // First element - solution, rest - locations
     for (int i = 0; i < numX + 1; i++)
     {
         if (i == 0)
@@ -90,68 +152,26 @@ int main(int argc , char * argv []) {
 
     MPI_Allgather(pop_sendBuff, 1, population_dt, pop_recvBuff, 1, population_dt, MPI_COMM_WORLD);
     
-    //revert from array to populationItems
+    int bestIndex = -1;
+    // Revert from array to populationItem
     for (int i = 0; i < numProcs; i++)
     {
         population[itemsInPopulation].solution = pop_recvBuff[i * (numX + 1)];
+        if (population[itemsInPopulation].solution > bestU)
+        {
+            bestIndex = i;
+            bestU = population[itemsInPopulation].solution;
+        }
+
         for (int j = 0; j < numX; j++)
             population[itemsInPopulation].locations[j] = (int)pop_recvBuff[i * (numX + 1) + (j + 1)];
+        
         itemsInPopulation++;
     }
 
-    // bestU = u;
-    // for (int i = 0; i < numX; i++) 
-    //     bestX[i] = X[i];
-
-	
-    // for (int iters = 0; iters < ITERS; iters++) {
-    //     printf("iteration - %d \n", iters);
-        
-    //     generateSolution(numX, numCL, X, bestX, ranks, distances, GEN_SOLUTION);
-
-    //     //Search for solution in population
-    //     populationItem popItem = search(population, POP_SIZE, X, numX);
-    //     if (popItem.solution > -1.0)
-    //     {
-    //         /* Generated solution was found in population */
-    //         u = popItem.solution;
-    //         timesPopulationSaved++;
-    //     }
-    //     else
-    //     {
-    //         /* Generated solution was not found in population */
-    //         u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, EVAL_SOLUTION);
-    //         insert(population, X, numX, u, &itemsInPopulation, POP_SIZE);
-    //     }
-
-    //     if (u > bestU) 
-    //     {
-    //         updateRanks(true);
-    //         bestU = u;
-
-    //         /*  Note:
-    //             Shouldn't we generate the solution BEFORE assigning X = X'?
-    //             If we do it affter assigning, the locations that were in X but weren't in X'
-    //             become available to pick.
-    //         */
-    //         for (int i = 0; i < numX; i++) 
-    //             bestX[i] = X[i];
-    //     }
-    //     else
-    //         updateRanks(false);
-    // }
-
-    // Write results
-    // ofstream resultsFile;
-    // resultsFile.open("results.txt", ios_base::app);
-	// for (int i=0; i<numX; i++) 
-    //     resultsFile << bestX[i] << ", ";
-    
-	// resultsFile << timesPopulationSaved << ", " << bestU << ", " << getTime() - ts_start << endl;
-    // resultsFile.close();
-
-    MPI_Finalize();
-    return 0;
+    // All proccesors save the best solution
+    for (int i = 0; i < numX; i++) 
+        bestX[i] = population[bestIndex].locations[i];
 }
 
 void updateRanks(bool success)
