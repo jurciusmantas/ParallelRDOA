@@ -6,6 +6,7 @@
 #include <sys/time.h>
 #include <omp.h>
 #include <mpi.h>
+#include <cstddef>
 #include "../Shared/RDOAlib.h"
 #include "../Shared/populationlib.h"
 #include "../Shared/parallellib.h"
@@ -28,10 +29,11 @@ int numDP   = 100;      // Vietoviu skaicius (demand points, max 10000)
 int numPF   = 5;          // Esanciu objektu skaicius (preexisting facilities)
 int numF    = 3;          // Esanciu imoniu skaicius (firms)
 int numCL   = 25;         // Kandidatu naujiems objektams skaicius (candidate locations)
-int numX    = 3;          // Nauju objektu skaicius
+constexpr int numX    = 5;          // Nauju objektu skaicius
 
 double **demandPoints, *distances;
 int *X, *bestX, *ranks;
+
 
 // Population variables
 populationItem* population;
@@ -40,6 +42,7 @@ int timesPopulationSaved = 0;
 
 // Parallel variables
 int id, numProcs, offset, procChunkSize;
+double *pop_sendBuff, *pop_recvBuff;
 MPI_Datatype population_dt;
 MPI_Status *statuses;
 MPI_Request *requests;
@@ -60,9 +63,11 @@ int main(int argc , char * argv []) {
 	loadDemandPoints(numDP, &demandPoints);
 	calculateDistancesAsync(numDP, numProcs, id, &distances, demandPoints);
 
-    initPopulationStructToMPI(&population_dt, numX);
+    initPopulationDataTypeToMPI(&population_dt, numX);
     initPopulation(&population, POP_SIZE, numX);
-	
+    pop_sendBuff = new double[numX + 1];
+    pop_recvBuff = new double[numProcs * (numX + 1)];
+
     X = new int[numX];
 	bestX = new int[numX];
 	double bestU = -1;
@@ -75,37 +80,25 @@ int main(int argc , char * argv []) {
     randomSolution(numCL, numX, X);
     double u = evaluateSolution_1D(numX, numDP, numPF, numF, X, demandPoints, distances, 1, EVAL_SOLUTION);
 
-    populationItem tempItemToSend;
-    tempItemToSend.solution = u;
-    tempItemToSend.locations = new int[numX];
-    for (int i = 0; i < numX; i++)
-        tempItemToSend.locations[i] = X[i];
-
-    cout << id << ": before MPI_Allgather" << endl;
-    cout << id << ": population item = " << tempItemToSend.solution << " (";
-    for (int i = 0; i < numX; i++)
-        cout << tempItemToSend.locations[i] << ", ";
-    cout << " )" << endl;
-
-    MPI_Barrier(MPI_COMM_WORLD);
-    MPI_Allgather(&tempItemToSend, 1, population_dt, population, 1, population_dt, MPI_COMM_WORLD);
-    
-    cout << id << ": after MPI_Allgather" << endl;
-    cout << "------------------------" << endl;
-
-    if (id == 0)
+    for (int i = 0; i < numX + 1; i++)
     {
-        cout << "numProcs = " << numProcs << endl;
-        cout << "populationLenght = " << *(&population + 1) - population << endl;
-
-        for (int i = 0; i < numProcs; i++)
-        {
-            cout << i << ": " << population[i].solution << " | (";
-            for (int j = 0; j < numX; j++)
-                cout << population[i].locations[j] << ", ";
-            cout << " )" << endl;
-        }
+        if (i == 0)
+            pop_sendBuff[i] = u;
+        else
+            pop_sendBuff[i] = (double)X[i - 1];
     }
+
+    MPI_Allgather(pop_sendBuff, 1, population_dt, pop_recvBuff, 1, population_dt, MPI_COMM_WORLD);
+    
+    //revert from array to populationItems
+    for (int i = 0; i < numProcs; i++)
+    {
+        population[itemsInPopulation].solution = pop_recvBuff[i * (numX + 1)];
+        for (int j = 0; j < numX; j++)
+            population[itemsInPopulation].locations[j] = (int)pop_recvBuff[i * (numX + 1) + (j + 1)];
+        itemsInPopulation++;
+    }
+
     // bestU = u;
     // for (int i = 0; i < numX; i++) 
     //     bestX[i] = X[i];
