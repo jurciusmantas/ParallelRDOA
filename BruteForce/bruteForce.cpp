@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -11,7 +12,7 @@
     0 - BinaryRule, 1 - PartialyBinaryRule 
 */
 
-#define EVAL_SOLUTION 1
+#define EVAL_SOLUTION 0
 
 using namespace std;
 
@@ -19,8 +20,8 @@ using namespace std;
 int numDP = 10000;      // Vietoviu skaicius (demand points, max 10000)
 int numPF = 5;         // Esanciu objektu skaicius (preexisting facilities)
 int numF  = 3;          // Esanciu imoniu skaicius (firms)
-int numCL = 5000;        // Kandidatu naujiems objektams skaicius (candidate locations)
-int numX  = 10;         // Nauju objektu skaicius
+int numCL = 100;        // Kandidatu naujiems objektams skaicius (candidate locations)
+int numX  = 4;         // Nauju objektu skaicius
 
 double **demandPoints, **distances;
 int *X, *bestX;
@@ -42,8 +43,11 @@ int main() {
 	}
 	double u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, EVAL_SOLUTION);
 	double bestU = u;
+	int iteration = 1;
 
 	while (true) {
+		cout << "iteration = " << iteration << endl;
+		iteration++;
 		if (increaseX(X, numX-1, numCL)) {
 			u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, EVAL_SOLUTION);
 			if (u > bestU) {
@@ -54,10 +58,15 @@ int main() {
 		else break;
 	}
 
-	cout << "Geriausias sprendinys: ";
-	for (int i=0; i<numX; i++) cout << bestX[i] << " ";
-	cout << "(" << bestU << ")" << endl;
-	cout << "Skaiciavimo trukme: " << getTime() - ts << endl;
+	// Write results
+    ofstream resultsFile;
+    resultsFile.open("results.txt", ios_base::app);
+	resultsFile << "numX = " << numX << ", evalSol = " << EVAL_SOLUTION << ", numCL = " << numCL << " | " << bestU << " (";
+	for (int i=0; i<numX; i++) 
+        resultsFile << bestX[i] << ", ";
+
+	resultsFile << ") | time = " << getTime() - ts << endl;
+	resultsFile.close();
 }
 
 //=============================================================================

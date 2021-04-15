@@ -179,7 +179,7 @@ void generateSolution(int numX, int numCL, int* X, int* bestX, int* ranks, doubl
 
 void generateSolution_1D(int numX, int numDP, int numCL, int* X, int* bestX, int* ranks, void* distances, int distancesDim, int gen_solution_mode)
 {
-    std::cout << "generateSolution START" << std::endl;
+    //std::cout << "generateSolution START" << std::endl;
 
     int changed = 0;
     do
@@ -237,7 +237,7 @@ void generateSolution_1D(int numX, int numDP, int numCL, int* X, int* bestX, int
     }
     while (changed == 0);
 
-    std::cout << "generateSolution END" << std::endl;
+    //std::cout << "generateSolution END" << std::endl;
 }
 
 void randomSolution(int numCL, int numX, int* X) {

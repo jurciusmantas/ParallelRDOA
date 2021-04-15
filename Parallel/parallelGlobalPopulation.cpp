@@ -25,15 +25,15 @@
 using namespace std;
 
 /* Configuration */
-int numDP   = 10000;      // Vietoviu skaicius (demand points, max 10000)
-int numPF   = 5;          // Esanciu objektu skaicius (preexisting facilities)
-int numF    = 3;          // Esanciu imoniu skaicius (firms)
-int numCL   = 25;         // Kandidatu naujiems objektams skaicius (candidate locations)
-constexpr int numX    = 3;          // Nauju objektu skaicius
+int numDP   = 10000;       // Vietoviu skaicius (demand points, max 10000)
+int numPF   = 5;           // Esanciu objektu skaicius (preexisting facilities)
+int numF    = 3;           // Esanciu imoniu skaicius (firms)
+int numCL   = 25;          // Kandidatu naujiems objektams skaicius (candidate locations)
+constexpr int numX    = 3; // Nauju objektu skaicius
 
 double **demandPoints, *distances;
 int *X, *bestX, *ranks;
-double best
+double bestU;
 
 // Population variables
 populationItem* population;
@@ -45,13 +45,16 @@ int id, numProcs, offset, procChunkSize;
 double *pop_sendBuff, *pop_recvBuff;
 MPI_Datatype population_dt;
 MPI_Status *statuses;
-MPI_Request *requests;
+MPI_Request ibcastRequest;
 MPI_Status status;
 
 //-------
 
 void updateRanks(bool success);
+
 void exchangeFirstSolutions();
+void checkForNewNotifications();
+void notifyBetterFound();
 
 int main(int argc , char * argv []) {
     MPI_Init(&argc , &argv);
@@ -79,12 +82,12 @@ int main(int argc , char * argv []) {
     //Init ranks
     ranks = new int[numCL];
     for (int i = 0; i < numCL; i++)
-        ranks[i] = i + 1;
+        ranks[i] = 1;
 
     exchangeFirstSolutions();
 	
     for (int iters = 0; iters < ITERS; iters++) {
-        printf("iteration - %d \n", iters);
+        //printf("iteration - %d \n", iters);
         
         generateSolution_1D(numX, numDP, numCL, X, bestX, ranks, distances, 1, GEN_SOLUTION);
 
@@ -103,18 +106,18 @@ int main(int argc , char * argv []) {
             insert(population, X, numX, u, &itemsInPopulation, POP_SIZE);
         }
 
+        /* Check if other processor found better solution */
+        checkForNewNotifications();
+
         if (u > bestU) 
         {
             updateRanks(true);
-            bestU = u;
 
-            /*  Note:
-                Shouldn't we generate the solution BEFORE assigning X = X'?
-                If we do it affter assigning, the locations that were in X but weren't in X'
-                become available to pick.
-            */
+            bestU = u;
             for (int i = 0; i < numX; i++) 
                 bestX[i] = X[i];
+
+            notifyBetterFound();
         }
         else
             updateRanks(false);
@@ -172,6 +175,39 @@ void exchangeFirstSolutions()
     // All proccesors save the best solution
     for (int i = 0; i < numX; i++) 
         bestX[i] = population[bestIndex].locations[i];
+}
+
+void checkForNewNotifications()
+{
+    for (int i = 0; i < numProcs; i++)
+    {
+        if (i == id)
+            continue;
+
+        int flag;
+        MPI_Status bcastStatus;
+
+        MPI_Iprobe(i, 0, MPI_COMM_WORLD, &flag, &status);
+
+        if (flag)
+        {
+            cout << id << ": got message from " << i << "??" << endl;
+        }
+    }
+}
+
+void notifyBetterFound()
+{
+    // First element - solution, rest - locations
+    for (int i = 0; i < numX + 1; i++)
+    {
+        if (i == 0)
+            pop_sendBuff[i] = bestU;
+        else
+            pop_sendBuff[i] = (double)bestX[i - 1];
+    }
+
+    MPI_Ibcast(pop_sendBuff, 1, population_dt, id, MPI_COMM_WORLD, &ibcastRequest);
 }
 
 void updateRanks(bool success)

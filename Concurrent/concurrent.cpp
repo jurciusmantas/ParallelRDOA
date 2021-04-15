@@ -28,7 +28,7 @@ int numX  = 3;          // Nauju objektu skaicius
 double **demandPoints, **distances;
 int *X, *bestX, *ranks;
 
-void updateRanks(int success);
+void updateRanks(bool success);
 
 int main() {
     double ts_start = getTime();
@@ -46,7 +46,7 @@ int main() {
     //Init ranks
     ranks = new int[numCL];
     for (int i = 0; i < numCL; i++)
-        ranks[i] = i + 1;
+        ranks[i] = 1;
 
     randomSolution(numCL, numX, X);
     double u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, EVAL_SOLUTION);
@@ -61,28 +61,25 @@ int main() {
 
         if (u > bestU) 
         {
-            updateRanks(1);
+            updateRanks(true);
             bestU = u;
 
-            /*  Note:
-                Shouldn't we generate the solution BEFORE assigning X = X'?
-                If we do it affter assigning, the locations that were in X but weren't in X'
-                become available to pick.
-            */
             for (int i = 0; i < numX; i++) 
                 bestX[i] = X[i];
         }
         else
-            updateRanks(0);
+            updateRanks(false);
     }
 
     // Write results
     ofstream resultsFile;
-    resultsFile.open("results.txt", ios_base::app);
+    stringstream fileName;
+    fileName << "results" << GEN_SOLUTION << EVAL_SOLUTION << ".txt" << endl;
+    resultsFile.open(fileName.str(), ios_base::app);
 	for (int i=0; i<numX; i++) 
         resultsFile << bestX[i] << " ";
 
-	resultsFile << "(" << bestU << "), " << getTime() - ts_start << endl;
+	resultsFile << ", " << bestU << ", " << getTime() - ts_start << endl;
 }
 
 void updateRanks(int success)
