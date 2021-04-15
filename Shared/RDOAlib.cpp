@@ -114,6 +114,62 @@ double GetDistance(void* distances, int distancesDim, int i, int j, int numDP)
     return result;
 }
 
+void updateRanks(int* ranks, int* X, int* bestX, int numCL, int numX, bool success)
+{
+    int zeroExists = 0;
+
+    for (int i = 0; i < numX; i++)
+    {
+        if (success == 1)
+        {
+            ranks[X[i]]++;
+
+            //Search if X contains bestX[i]
+            int contains = 0;
+            for (int j = 0; j < numX; j++)
+            {
+                if (X[j] == bestX[i])
+                {
+                    contains = 1;
+                    break;
+                }
+            }
+
+            if (contains == 0)
+            {
+                ranks[bestX[i]]--;
+                if (ranks[bestX[i]] == 0)
+                    zeroExists = 1;
+            }
+        }
+
+        if (success == 0)
+        {
+            //Search if bestX contains X[i]
+            int contains = 0;
+            for (int j = 0; j < numX; j++)
+            {
+                if (X[i] == bestX[j])
+                {
+                    contains = 1;
+                    break;
+                }
+            }
+
+            if (contains == 0)
+            {
+                ranks[X[i]]--;
+                if (ranks[X[i]] == 0)
+                    zeroExists = 1;
+            }
+        }
+    }
+
+    if (zeroExists)
+        for(int i = 0; i < numCL; i++)
+            ranks[i]++;
+}
+
 #pragma region Generate solution
 
 void generateSolution(int numX, int numCL, int* X, int* bestX, int* ranks, double** distances, int gen_solution_mode)

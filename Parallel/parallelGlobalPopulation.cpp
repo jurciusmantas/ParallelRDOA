@@ -50,8 +50,6 @@ MPI_Status status;
 
 //-------
 
-void updateRanks(bool success);
-
 void exchangeFirstSolutions();
 void checkForNewNotifications();
 void notifyBetterFound();
@@ -111,7 +109,7 @@ int main(int argc , char * argv []) {
 
         if (u > bestU) 
         {
-            updateRanks(true);
+            updateRanks(ranks, X, bestX, numCL, numX, true);
 
             bestU = u;
             for (int i = 0; i < numX; i++) 
@@ -120,7 +118,7 @@ int main(int argc , char * argv []) {
             notifyBetterFound();
         }
         else
-            updateRanks(false);
+            updateRanks(ranks, X, bestX, numCL, numX, false);
     }
 
     // Write results
@@ -208,60 +206,4 @@ void notifyBetterFound()
     }
 
     MPI_Ibcast(pop_sendBuff, 1, population_dt, id, MPI_COMM_WORLD, &ibcastRequest);
-}
-
-void updateRanks(bool success)
-{
-    int zeroExists = 0;
-
-    for (int i = 0; i < numX; i++)
-    {
-        if (success)
-        {
-            ranks[X[i]]++;
-
-            //Search if X contains bestX[i]
-            int contains = 0;
-            for (int j = 0; j < numX; j++)
-            {
-                if (X[j] == bestX[i])
-                {
-                    contains = 1;
-                    break;
-                }
-            }
-
-            if (contains == 0)
-            {
-                ranks[bestX[i]]--;
-                if (ranks[bestX[i]] == 0)
-                    zeroExists = 1;
-            }
-        }
-
-        if (!success)
-        {
-            //Search if bestX contains X[i]
-            int contains = 0;
-            for (int j = 0; j < numX; j++)
-            {
-                if (X[i] == bestX[j])
-                {
-                    contains = 1;
-                    break;
-                }
-            }
-
-            if (contains == 0)
-            {
-                ranks[X[i]]--;
-                if (ranks[X[i]] == 0)
-                    zeroExists = 1;
-            }
-        }
-    }
-
-    if (zeroExists)
-        for(int i = 0; i < numCL; i++)
-            ranks[i]++;
 }
