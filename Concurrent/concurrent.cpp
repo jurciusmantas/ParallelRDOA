@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <sstream>
 #include <sys/time.h>
 #include "../Shared/RDOAlib.h"
 
@@ -14,12 +15,12 @@
 */
 #define GEN_SOLUTION 0
 #define EVAL_SOLUTION 0
-#define ITERS 10000
+#define ITERS 10
 
 using namespace std;
 
 /* Configuration */
-int numDP = 10000;      // Vietoviu skaicius (demand points, max 10000)
+int numDP = 100;      // Vietoviu skaicius (demand points, max 10000)
 int numPF = 5;          // Esanciu objektu skaicius (preexisting facilities)
 int numF  = 3;          // Esanciu imoniu skaicius (firms)
 int numCL = 25;         // Kandidatu naujiems objektams skaicius (candidate locations)
@@ -49,7 +50,7 @@ int main() {
         ranks[i] = 1;
 
     randomSolution(numCL, numX, X);
-    double u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, EVAL_SOLUTION);
+    double u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, 2, EVAL_SOLUTION);
     bestU = u;
     for (int i = 0; i < numX; i++) 
         bestX[i] = X[i];
@@ -57,18 +58,18 @@ int main() {
     for (int iters = 0; iters < ITERS; iters++) {
         printf("iteration - %d \n", iters);
         generateSolution(numX, numCL, X, bestX, ranks, distances, GEN_SOLUTION);
-        u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, EVAL_SOLUTION);
+        u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, 2, EVAL_SOLUTION);
 
         if (u > bestU) 
         {
-            updateRanks(true);
+            updateRanks(ranks, X, bestX, numCL, numX, true);
             bestU = u;
 
             for (int i = 0; i < numX; i++) 
                 bestX[i] = X[i];
         }
         else
-            updateRanks(false);
+            updateRanks(ranks, X, bestX, numCL, numX, false);
     }
 
     // Write results
