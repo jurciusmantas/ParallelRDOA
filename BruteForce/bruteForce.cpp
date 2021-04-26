@@ -12,24 +12,33 @@
     0 - BinaryRule, 1 - PartialyBinaryRule 
 */
 
-#define EVAL_SOLUTION 0
-
 using namespace std;
 
+/* Command line parameters */
+int evalSolution = 0;
+
 /* Configuration */
-int numDP = 10000;      // Vietoviu skaicius (demand points, max 10000)
+int numDP = 100;      // Vietoviu skaicius (demand points, max 10000)
 int numPF = 5;         // Esanciu objektu skaicius (preexisting facilities)
 int numF  = 3;          // Esanciu imoniu skaicius (firms)
-int numCL = 100;        // Kandidatu naujiems objektams skaicius (candidate locations)
-int numX  = 4;         // Nauju objektu skaicius
+int numCL = 25;        // Kandidatu naujiems objektams skaicius (candidate locations)
+int numX  = 3;         // Nauju objektu skaicius
 
 double **demandPoints, **distances;
 int *X, *bestX;
 
 int increaseX(int *X, int index, int maxindex);
 
-int main() {
+int main(int argc, char* argv[]) {
 	double ts = getTime();
+
+	if (argc != 2)
+    {
+        cout << "Missing command line parameters or too many provided" << endl;
+        abort();
+    }
+
+    evalSolution = atoi(argv[1]);
 
 	loadDemandPoints(numDP, &demandPoints);
 	calculateDistances(numDP, &distances, demandPoints);
@@ -41,7 +50,7 @@ int main() {
 		X[i] = i;
 		bestX[i] = i;
 	}
-	double u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, EVAL_SOLUTION);
+	double u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, 2, evalSolution);
 	double bestU = u;
 	int iteration = 1;
 
@@ -49,7 +58,7 @@ int main() {
 		cout << "iteration = " << iteration << endl;
 		iteration++;
 		if (increaseX(X, numX-1, numCL)) {
-			u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, EVAL_SOLUTION);
+			u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, 2, evalSolution);
 			if (u > bestU) {
 				bestU = u;
 				for (int i=0; i<numX; i++) bestX[i] = X[i];
@@ -61,7 +70,7 @@ int main() {
 	// Write results
     ofstream resultsFile;
     resultsFile.open("results.txt", ios_base::app);
-	resultsFile << "numX = " << numX << ", evalSol = " << EVAL_SOLUTION << ", numCL = " << numCL << " | " << bestU << " (";
+	resultsFile << "numX = " << numX << ", numDP = " << numDP << ", evalSol = " << evalSolution << ", numCL = " << numCL << " | " << bestU << " (";
 	for (int i=0; i<numX; i++) 
         resultsFile << bestX[i] << ", ";
 
