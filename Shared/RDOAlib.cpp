@@ -434,6 +434,8 @@ double evaluateSolution(int numX, int numDP, int numPF, int numF, int* X, double
         return evaluateSolutionBinary(numX, numDP, numPF, numF, X, demandPoints, distances, distancesDim);
     else if (eval_solution_mode == 1)
         return evaluateSolutionPartialyBinary(numX, numDP, numPF, numF, X, demandPoints, distances, distancesDim);
+    else
+        return -1;
 }
 
 #pragma endregion

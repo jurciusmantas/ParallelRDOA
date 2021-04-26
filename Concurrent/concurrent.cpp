@@ -13,11 +13,12 @@
     EvalSolution
     0 - BinaryRule, 1 - PartialyBinaryRule 
 */
-#define GEN_SOLUTION 0
-#define EVAL_SOLUTION 0
-#define ITERS 10
-
 using namespace std;
+
+/* Command line parameters */
+int genSolution = 0, 
+    evalSolution = 0,
+    iterations = 0;
 
 /* Configuration */
 int numDP = 100;      // Vietoviu skaicius (demand points, max 10000)
@@ -31,11 +32,21 @@ int *X, *bestX, *ranks;
 
 void updateRanks(bool success);
 
-int main() {
+int main(int argc, char* argv[]) {
     double ts_start = getTime();
 
     //New seed on every run
     srand((unsigned)time(0));
+
+    if (argc != 4)
+    {
+        cout << "Missing command line parameters or too many provided" << endl;
+        abort();
+    }
+
+    genSolution = atoi(argv[1]);
+    evalSolution = atoi(argv[2]);
+    iterations = atoi(argv[3]);
     
 	loadDemandPoints(numDP, &demandPoints);
 	calculateDistances(numDP, &distances, demandPoints);
@@ -50,15 +61,15 @@ int main() {
         ranks[i] = 1;
 
     randomSolution(numCL, numX, X);
-    double u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, 2, EVAL_SOLUTION);
+    double u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, 2, evalSolution);
     bestU = u;
     for (int i = 0; i < numX; i++) 
         bestX[i] = X[i];
 	
-    for (int iters = 0; iters < ITERS; iters++) {
+    for (int iters = 0; iters < iterations; iters++) {
         printf("iteration - %d \n", iters);
-        generateSolution(numX, numCL, X, bestX, ranks, distances, GEN_SOLUTION);
-        u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, 2, EVAL_SOLUTION);
+        generateSolution(numX, numCL, X, bestX, ranks, distances, genSolution);
+        u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, 2, evalSolution);
 
         if (u > bestU) 
         {
@@ -75,7 +86,7 @@ int main() {
     // Write results
     ofstream resultsFile;
     stringstream fileName;
-    fileName << "results" << GEN_SOLUTION << EVAL_SOLUTION << ".txt" << endl;
+    fileName << "results" << genSolution << evalSolution << ".txt" << endl;
     resultsFile.open(fileName.str(), ios_base::app);
 	for (int i=0; i<numX; i++) 
         resultsFile << bestX[i] << " ";
