@@ -18,12 +18,13 @@ using namespace std;
 int evalSolution = 0;
 
 /* Configuration */
-int numDP = 100;      // Vietoviu skaicius (demand points, max 10000)
-int numPF = 5;         // Esanciu objektu skaicius (preexisting facilities)
-int numF  = 3;          // Esanciu imoniu skaicius (firms)
-int numCL = 25;        // Kandidatu naujiems objektams skaicius (candidate locations)
-int numX  = 3;         // Nauju objektu skaicius
+int numDP,      // demand point locations count, max 10000
+	numPF,      // preexisting facilities count
+	numF,       // preexisting firm count
+	numCL,      // candidate locations count
+	numX;       // new location count
 
+/* Algorithm variables */
 double **demandPoints, **distances;
 int *X, *bestX;
 
@@ -39,6 +40,8 @@ int main(int argc, char* argv[]) {
     }
 
     evalSolution = atoi(argv[1]);
+	int* params[5] = { &numDP, &numPF, &numF, &numCL, &numX };
+	readConfig(params, 5);
 
 	loadDemandPoints(numDP, &demandPoints);
 	calculateDistances(numDP, &distances, demandPoints);

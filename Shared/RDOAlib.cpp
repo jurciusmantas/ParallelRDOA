@@ -21,6 +21,20 @@ double HaversineDistance(double* a, double* b) {
    return d;
 }
 
+void readConfig(int** params, int count)
+{
+    std::cout << "readConfig START" << std::endl;
+
+    FILE *f;
+	f = fopen("../config.dat", "r");
+
+    for (int i = 0; i < count; i++)
+        fscanf(f, "%d", &(*params)[i]);
+
+    fclose(f);
+    std::cout << "readConfig END" << std::endl;
+}
+
 void loadDemandPoints(int numDP, double*** demandPoints) {
     std::cout << "loadDemandPoints START" << std::endl;
 
@@ -348,62 +362,34 @@ void randomSolution(int numCL, int numX, int* X) {
 double evaluateSolutionBinary(int numX, int numDP, int numPF, int numF, int* X, double** demandPoints, void* distances, int distancesDim)
 {
     double result = 0;
-    int* bestPFs;
-    int bestCX;
     double d;
 
     for (int i = 0; i < numDP; i++) 
     {
-        bestPFs = new int[numF];
+        // Attraction is 1/(1 + distance), so the smaller distance the better
 
-        // Nearest from current facility and preexisting firms
-        for (int preexistingIndex = 0; preexistingIndex < numF; preexistingIndex++)
+        double bestPF = 1e5;
+        // Nearest from current facility from preexisting firms
+        for (int preexistingIndex = 0; preexistingIndex < numF * numPF; preexistingIndex++)
         {
-            double bestPF = 1e5;
-            for (int j = 0; j < numPF; j++)
-            {
-                //d = distances[i][preexistingIndex + (j * numF)];
-                d = GetDistance(distances, distancesDim, i, preexistingIndex + (j * numF), numDP);
-                if (d < bestPF)
-                    bestPF = d;
-            }
-            bestPFs[preexistingIndex] = bestPF;
+            d = GetDistance(distances, distancesDim, i, preexistingIndex, numDP);
+            if (d < bestPF)
+                bestPF = d;
         }
 
+        double bestCX = 1e5;
         // Nearest from current facility and solution
-        bestCX = 1e5;
         for (int j = 0; j < numX; j++) 
         {
-            //d = distances[i][X[j]];
             d = GetDistance(distances, distancesDim, i, X[j], numDP);
             if (d < bestCX) 
                 bestCX = d;
         }
 
-        /* Binary rule */
-        bool smallerExists = false;
-        bool equalExists = false;
-        for (int j = 0; j < numF; j++)
-        {
-            if (bestCX > bestPFs[j])
-            {
-                smallerExists = true;
-                break;
-            }
-            else if (bestCX == bestPFs[j])
-                equalExists = true;
-        }
-
-        if (!smallerExists)
-        {
-            if (!equalExists)
-                // Attraction is 1/(1 + distance), so the smaller distance the better
-                result += demandPoints[i][2];
-            else
-                result += 0.3 * demandPoints[i][2]; // Fixed proportion - 0.3?
-        }
-
-        delete bestPFs;
+        if (bestCX < bestPF)
+            result += demandPoints[i][2];
+        else if (bestCX == bestPF)
+            result += 0.3 * demandPoints[i][2]; // Fixed proportion - 0.3?
     }
 
 	return result;

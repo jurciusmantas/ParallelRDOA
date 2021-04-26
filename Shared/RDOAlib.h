@@ -1,5 +1,6 @@
 double getTime();
 double HaversineDistance(double* a, double* b);
+void readConfig(int** params, int count);
 void loadDemandPoints(int numDP, double*** demandPoints);
 void calculateDistances(int numDP, double*** distances, double** demandPoints);
 void updateRanks(int* ranks, int* X, int* bestX, int numCL, int numX, bool success);
