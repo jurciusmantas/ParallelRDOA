@@ -94,15 +94,15 @@ int rouletteWheel(double* probabilities, int count)
     return pick;
 }
 
-int locationAvailable(int location, int numX, int *X, int* bestX)
+bool locationAvailable(int location, int numX, int *X, int* bestX)
 {
     for (int i = 0; i < numX; i++)
     {
         if (X[i] == location || bestX[i] == location) 
-            return 0;
+            return false;
     }
 
-    return 1;
+    return true;
 }
 
 double GetDistance(void* distances, int distancesDim, int i, int j, int numDP)
@@ -130,34 +130,34 @@ double GetDistance(void* distances, int distancesDim, int i, int j, int numDP)
 
 void updateRanks(int* ranks, int* X, int* bestX, int numCL, int numX, bool success)
 {
-    int zeroExists = 0;
+    bool zeroExists = false;
 
     for (int i = 0; i < numX; i++)
     {
-        if (success == 1)
+        if (success)
         {
             ranks[X[i]]++;
 
             //Search if X contains bestX[i]
-            int contains = 0;
+            bool contains = false;
             for (int j = 0; j < numX; j++)
             {
                 if (X[j] == bestX[i])
                 {
-                    contains = 1;
+                    contains = true;
                     break;
                 }
             }
 
-            if (contains == 0)
+            if (!contains)
             {
                 ranks[bestX[i]]--;
                 if (ranks[bestX[i]] == 0)
-                    zeroExists = 1;
+                    zeroExists = true;
             }
         }
 
-        if (success == 0)
+        if (!success)
         {
             //Search if bestX contains X[i]
             int contains = 0;
@@ -165,16 +165,16 @@ void updateRanks(int* ranks, int* X, int* bestX, int numCL, int numX, bool succe
             {
                 if (X[i] == bestX[j])
                 {
-                    contains = 1;
+                    contains = true;
                     break;
                 }
             }
 
-            if (contains == 0)
+            if (!contains)
             {
                 ranks[X[i]]--;
                 if (ranks[X[i]] == 0)
-                    zeroExists = 1;
+                    zeroExists = true;
             }
         }
     }
@@ -185,67 +185,6 @@ void updateRanks(int* ranks, int* X, int* bestX, int numCL, int numX, bool succe
 }
 
 #pragma region Generate solution
-
-void generateSolution(int numX, int numCL, int* X, int* bestX, int* ranks, double** distances, int gen_solution_mode)
-{
-    std::cout << "generateSolution START" << std::endl;
-
-    int changed = 0;
-    do
-    {
-        for (int i = 0; i < numX; i ++)
-        {
-            //Probability for change is 1/s
-            //where s is numX
-            double probabilityForChange = rand() / (double) RAND_MAX;
-            if (probabilityForChange > (1.0 / numX))
-                continue;
-
-            // rankSum is only used with RDOA (gen_solution_mode = 0)
-            int rankSum = 0;
-            if (gen_solution_mode == 0)
-                for (int j = 0; j < numCL; j++)
-                {
-                    if (locationAvailable(j, numX, X, bestX) == 1)
-                        rankSum += ranks[j];
-                }
-
-            double* locationProbabilities = new double[numCL];
-            for (int j = 0; j < numCL; j++)
-            {
-                if (locationAvailable(j, numX, X, bestX) == 0)
-                {
-                    locationProbabilities[j] = 0;
-                    continue;
-                }
-                
-                //RDOA
-                if (gen_solution_mode == 0)
-                    locationProbabilities[j] = ranks[j] / (double)rankSum;
-
-                //RDOA-D
-                if (gen_solution_mode == 1)
-                {
-                    double probabilityDenominator = 0.0;
-                    for (int z = 0; z < numCL; z++)
-                    {
-                        if (locationAvailable(z, numX, X, bestX) == 1)
-                            probabilityDenominator += ranks[z] / distances[z][X[i]];
-                    }
-
-                    locationProbabilities[j] = ranks[j] / (distances[j][X[i]] * probabilityDenominator);
-                }
-            }
-
-            int pickLocation = rouletteWheel(locationProbabilities, numCL);
-            X[i] = pickLocation;
-            changed = 1;
-        }
-    }
-    while (changed == 0);
-
-    std::cout << "generateSolution END" << std::endl;
-}
 
 void generateSolutionRDOA(int numX, int numDP, int numCL, int* X, int* bestX, int* ranks, void* distances, int distancesDim)
 {
@@ -263,14 +202,14 @@ void generateSolutionRDOA(int numX, int numDP, int numCL, int* X, int* bestX, in
             int rankSum = 0;
             for (int j = 0; j < numCL; j++)
             {
-                if (locationAvailable(j, numX, X, bestX) == 1)
+                if (locationAvailable(j, numX, X, bestX))
                     rankSum += ranks[j];
             }
 
             double* locationProbabilities = new double[numCL];
             for (int j = 0; j < numCL; j++)
             {
-                if (locationAvailable(j, numX, X, bestX) == 0)
+                if (!locationAvailable(j, numX, X, bestX))
                 {
                     locationProbabilities[j] = 0;
                     continue;
@@ -303,7 +242,7 @@ void generateSolutionRDOAD(int numX, int numDP, int numCL, int* X, int* bestX, i
             double* locationProbabilities = new double[numCL];
             for (int j = 0; j < numCL; j++)
             {
-                if (locationAvailable(j, numX, X, bestX) == 0)
+                if (!locationAvailable(j, numX, X, bestX))
                 {
                     locationProbabilities[j] = 0;
                     continue;
@@ -312,7 +251,7 @@ void generateSolutionRDOAD(int numX, int numDP, int numCL, int* X, int* bestX, i
                 double probabilityDenominator = 0.0;
                 for (int z = 0; z < numCL; z++)
                 {
-                    if (locationAvailable(z, numX, X, bestX) == 1)
+                    if (locationAvailable(z, numX, X, bestX))
                         probabilityDenominator += ranks[z] / GetDistance(distances, distancesDim, z, X[i], numDP);
                 }
 
