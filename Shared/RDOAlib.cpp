@@ -233,10 +233,8 @@ void generateSolution(int numX, int numCL, int* X, int* bestX, int* ranks, doubl
     std::cout << "generateSolution END" << std::endl;
 }
 
-void generateSolution_1D(int numX, int numDP, int numCL, int* X, int* bestX, int* ranks, void* distances, int distancesDim, int gen_solution_mode)
+void generateSolutionRDOA(int numX, int numDP, int numCL, int* X, int* bestX, int* ranks, void* distances, int distancesDim)
 {
-    //std::cout << "generateSolution START" << std::endl;
-
     int changed = 0;
     do
     {
@@ -248,14 +246,12 @@ void generateSolution_1D(int numX, int numDP, int numCL, int* X, int* bestX, int
             if (probabilityForChange > (1.0 / numX))
                 continue;
 
-            // rankSum is only used with RDOA (gen_solution_mode = 0)
             int rankSum = 0;
-            if (gen_solution_mode == 0)
-                for (int j = 0; j < numCL; j++)
-                {
-                    if (locationAvailable(j, numX, X, bestX) == 1)
-                        rankSum += ranks[j];
-                }
+            for (int j = 0; j < numCL; j++)
+            {
+                if (locationAvailable(j, numX, X, bestX) == 1)
+                    rankSum += ranks[j];
+            }
 
             double* locationProbabilities = new double[numCL];
             for (int j = 0; j < numCL; j++)
@@ -266,24 +262,7 @@ void generateSolution_1D(int numX, int numDP, int numCL, int* X, int* bestX, int
                     continue;
                 }
                 
-                //RDOA
-                if (gen_solution_mode == 0)
-                    locationProbabilities[j] = ranks[j] / (double)rankSum;
-
-                //RDOA-D
-                if (gen_solution_mode == 1)
-                {
-                    double probabilityDenominator = 0.0;
-                    for (int z = 0; z < numCL; z++)
-                    {
-                        if (locationAvailable(z, numX, X, bestX) == 1)
-                            //probabilityDenominator += ranks[z] / distances[z][X[i]];
-                            probabilityDenominator += ranks[z] / GetDistance(distances, distancesDim, z, X[i], numDP);
-                    }
-
-                    //locationProbabilities[j] = ranks[j] / (distances[j][X[i]] * probabilityDenominator);
-                    locationProbabilities[j] = ranks[j] / (GetDistance(distances, distancesDim, j, X[i], numDP) * probabilityDenominator);
-                }
+                locationProbabilities[j] = ranks[j] / (double)rankSum;
             }
 
             int pickLocation = rouletteWheel(locationProbabilities, numCL);
@@ -292,8 +271,59 @@ void generateSolution_1D(int numX, int numDP, int numCL, int* X, int* bestX, int
         }
     }
     while (changed == 0);
+}
 
-    //std::cout << "generateSolution END" << std::endl;
+void generateSolutionRDOAD(int numX, int numDP, int numCL, int* X, int* bestX, int* ranks, void* distances, int distancesDim)
+{
+    int changed = 0;
+    do
+    {
+        for (int i = 0; i < numX; i ++)
+        {
+            //Probability for change is 1/s
+            //where s is numX
+            double probabilityForChange = rand() / (double) RAND_MAX;
+            if (probabilityForChange > (1.0 / numX))
+                continue;
+
+            double* locationProbabilities = new double[numCL];
+            for (int j = 0; j < numCL; j++)
+            {
+                if (locationAvailable(j, numX, X, bestX) == 0)
+                {
+                    locationProbabilities[j] = 0;
+                    continue;
+                }
+                
+                double probabilityDenominator = 0.0;
+                for (int z = 0; z < numCL; z++)
+                {
+                    if (locationAvailable(z, numX, X, bestX) == 1)
+                        probabilityDenominator += ranks[z] / GetDistance(distances, distancesDim, z, X[i], numDP);
+                }
+
+                locationProbabilities[j] = ranks[j] / (GetDistance(distances, distancesDim, j, X[i], numDP) * probabilityDenominator);
+            }
+
+            int pickLocation = rouletteWheel(locationProbabilities, numCL);
+            X[i] = pickLocation;
+            changed = 1;
+        }
+    }
+    while (changed == 0);
+}
+
+void generateSolution(int numX, int numDP, int numCL, int* X, int* bestX, int* ranks, void* distances, int distancesDim, int gen_solution_mode)
+{
+    if (gen_solution_mode == 0)
+        generateSolutionRDOA(numX, numDP, numCL, X, bestX, ranks, distances, distancesDim);
+    else if (gen_solution_mode == 1)
+        generateSolutionRDOAD(numX, numDP, numCL, X, bestX, ranks, distances, distancesDim);
+    else
+    {
+        std::cout << "generateSolution mode = " << gen_solution_mode << " not supported" << std::endl;
+        abort();
+    }
 }
 
 void randomSolution(int numCL, int numX, int* X) {
@@ -435,7 +465,10 @@ double evaluateSolution(int numX, int numDP, int numPF, int numF, int* X, double
     else if (eval_solution_mode == 1)
         return evaluateSolutionPartialyBinary(numX, numDP, numPF, numF, X, demandPoints, distances, distancesDim);
     else
-        return -1;
+    {
+        std::cout << "evaluateSolution mode = " << eval_solution_mode << " not supported" << std::endl;
+        abort();
+    }
 }
 
 #pragma endregion

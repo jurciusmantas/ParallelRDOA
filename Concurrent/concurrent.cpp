@@ -68,7 +68,7 @@ int main(int argc, char* argv[]) {
 	
     for (int iters = 0; iters < iterations; iters++) {
         printf("iteration - %d \n", iters);
-        generateSolution(numX, numCL, X, bestX, ranks, distances, genSolution);
+        generateSolution(numX, numDP, numCL, X, bestX, ranks, distances, 2, genSolution);
         u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, 2, evalSolution);
 
         if (u > bestU) 
