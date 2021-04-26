@@ -98,7 +98,7 @@ int main() {
     // Write results
     ofstream resultsFile;
     stringstream fileName;
-    fileName << "results" << GEN_SOLUTION << EVAL_SOLUTION << ".txt" << endl;
+    fileName << "results" << GEN_SOLUTION << EVAL_SOLUTION << ".txt";
     resultsFile.open(fileName.str(), ios_base::app);
 	for (int i=0; i<numX; i++) 
         resultsFile << bestX[i] << " ";

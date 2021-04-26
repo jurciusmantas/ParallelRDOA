@@ -124,7 +124,7 @@ int main(int argc , char * argv []) {
     // Write results
     ofstream resultsFile;
     stringstream fileName;
-    fileName << "resultsProc" << id << ".txt" << endl;
+    fileName << "resultsProc" << id << ".txt";
     resultsFile.open(fileName.str(), ios_base::app);
 	for (int i=0; i<numX; i++) 
         resultsFile << bestX[i] << ", ";
