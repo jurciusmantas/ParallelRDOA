@@ -370,9 +370,9 @@ double evaluateSolutionBinary(int numX, int numDP, int numPF, int numF, int* X, 
 
         double bestPF = 1e5;
         // Nearest from current facility from preexisting firms
-        for (int preexistingIndex = 0; preexistingIndex < numF * numPF; preexistingIndex++)
+        for (int j = 0; j < numF * numPF; j++)
         {
-            d = GetDistance(distances, distancesDim, i, preexistingIndex, numDP);
+            d = GetDistance(distances, distancesDim, i, j, numDP);
             if (d < bestPF)
                 bestPF = d;
         }
@@ -399,7 +399,6 @@ double evaluateSolutionPartialyBinary(int numX, int numDP, int numPF, int numF, 
 {
     double result = 0;
     int* bestPFs;
-    int bestCX;
     double d;
 
     for (int i = 0; i < numDP; i++) 
@@ -412,8 +411,8 @@ double evaluateSolutionPartialyBinary(int numX, int numDP, int numPF, int numF, 
             double bestPF = 1e5;
             for (int j = 0; j < numPF; j++)
             {
-                //d = distances[i][preexistingIndex + (j * numF)];
-                d = GetDistance(distances, distancesDim, i, preexistingIndex + (j * numF), numDP);
+                int secondIndex = preexistingIndex + (j * numF);
+                d = GetDistance(distances, distancesDim, i, secondIndex, numDP);
                 if (d < bestPF)
                     bestPF = d;
             }
@@ -421,20 +420,19 @@ double evaluateSolutionPartialyBinary(int numX, int numDP, int numPF, int numF, 
         }
 
         // Nearest from current facility and solution
-        bestCX = 1e5;
+        double bestCX = 1e5;
         for (int j = 0; j < numX; j++) 
         {
-            //d = distances[i][X[j]];
             d = GetDistance(distances, distancesDim, i, X[j], numDP);
             if (d < bestCX) 
                 bestCX = d;
         }
 
         /* PartialyBinaryRule */
-        double attractionCurrent = 1.0 / (1 + bestCX);
+        double attractionCurrent = 1.0 / (1.0 + bestCX);
         double sumAttractionPreexisting = 0.0;
         for (int j = 0; j < numF; j++)
-            sumAttractionPreexisting += 1.0 / (1 + bestPFs[j]);
+            sumAttractionPreexisting += 1.0 / (1.0 + bestPFs[j]);
 
         result += demandPoints[i][2] * (attractionCurrent / (attractionCurrent + sumAttractionPreexisting));
 
