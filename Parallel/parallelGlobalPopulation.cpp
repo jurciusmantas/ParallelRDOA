@@ -47,8 +47,8 @@ int id, numProcs, offset, procChunkSize;
 double *pop_sendBuff, *pop_recvBuff;
 MPI_Datatype population_dt;
 MPI_Status *statuses;
-MPI_Request ibcastRequest;
-MPI_Status status;
+MPI_Request sendRequest;
+MPI_Status recvStatus;
 
 //-------
 
@@ -94,8 +94,8 @@ int main(int argc , char * argv []) {
 
     exchangeFirstSolutions();
 	
-    for (int iters = 0; iters < iterations; iters++) {
-        printf("iteration - %d \n", iters);
+    for (int iters = 0; iters < iterations / numProcs; iters++) {
+        //printf("iteration - %d \n", iters);
         
         generateSolution(numX, numDP, numCL, X, bestX, ranks, distances, 1, genSolution);
 
@@ -190,20 +190,25 @@ void exchangeFirstSolutions()
 
 void checkForNewNotifications()
 {
-    for (int i = 0; i < numProcs; i++)
+    while (true)
     {
-        if (i == id)
-            continue;
-
-        int flag;
-        MPI_Status bcastStatus;
-
-        MPI_Iprobe(i, 0, MPI_COMM_WORLD, &flag, &status);
-
-        if (flag)
+        int flag = 0;
+        int probeRes = MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, &recvStatus);
+        if (flag == 1)
         {
-            cout << id << ": got message from " << i << "??" << endl;
+            MPI_Recv(pop_recvBuff, 1, population_dt, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &recvStatus);
+
+            if (pop_recvBuff[0] > bestU)
+            {
+                bestU = pop_recvBuff[0];
+                for (int i = 0; i < numX; i++)
+                    bestX[i] = (int)pop_recvBuff[i + 1];
+            }
+            else
+                cout << id << " received bestU which was lower, bestU = " << bestU << ", received = " << pop_recvBuff[0] << endl;
         }
+        else
+            break;
     }
 }
 
@@ -218,7 +223,13 @@ void notifyBetterFound()
             pop_sendBuff[i] = (double)bestX[i - 1];
     }
 
-    MPI_Ibcast(pop_sendBuff, 1, population_dt, id, MPI_COMM_WORLD, &ibcastRequest);
+    for (int i = 0; i < numProcs; i++)
+    {
+        if (i == id)
+            continue;
+
+        MPI_Isend(pop_sendBuff, 1, population_dt, i, 0, MPI_COMM_WORLD, &sendRequest);
+    }
 }
 
 void getBestSolutions()
@@ -238,7 +249,7 @@ void getBestSolutions()
     {
         if (pop_recvBuff[i * (numX + 1)] > bestU)
         {
-            bestU = population[itemsInPopulation].solution;
+            bestU = pop_recvBuff[i * (numX + 1)];
             for (int j = 0; j < numX; j++)
                 bestX[j] = (int)pop_recvBuff[i * (numX + 1) + (j + 1)];
         }
