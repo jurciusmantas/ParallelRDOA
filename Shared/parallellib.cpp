@@ -40,17 +40,3 @@ void calculateDistancesAsync(int numDP, int numProcs, int id, double** distances
 	MPI_Allgather(*(distances)+(offsetForCalc * numDP), procChunkSizeForCalc * numDP, 
 		MPI_DOUBLE, *distances, procChunkSizeForCalc * numDP, MPI_DOUBLE, MPI_COMM_WORLD);
 }
-
-double* popItemToArray(populationItem item, int numX)
-{
-	double* result = new double[numX + 1];
-	for (int i = 0; i < numX + 1; i++)
-    {
-        if (i == 0)
-            result[i] = item.solution;
-        else
-            result[i] = item.locations[i - 1];
-    }
-
-	return result;
-}

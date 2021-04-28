@@ -14,3 +14,5 @@ populationItem search(populationItem* population, int populationSize, int* X, in
 
 /* Insert (if neccessary) */
 void insert(populationItem* population, int* locations, int numX, double solution, int* itemsInPopulation, int populationSize);
+
+double* popItemToArray(populationItem item, int numX);

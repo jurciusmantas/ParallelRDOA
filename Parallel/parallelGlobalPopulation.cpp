@@ -55,6 +55,7 @@ MPI_Status status;
 void exchangeFirstSolutions();
 void checkForNewNotifications();
 void notifyBetterFound();
+void getBestSolutions();
 
 int main(int argc , char * argv []) {
     MPI_Init(&argc , &argv);
@@ -130,16 +131,21 @@ int main(int argc , char * argv []) {
             updateRanks(ranks, X, bestX, numCL, numX, false);
     }
 
+    getBestSolutions();
+
     // Write results
-    ofstream resultsFile;
-    stringstream fileName;
-    fileName << "resultsProc" << id << ".txt";
-    resultsFile.open(fileName.str(), ios_base::app);
-	for (int i=0; i<numX; i++) 
-        resultsFile << bestX[i] << ", ";
-    
-	resultsFile << bestU << ", " << timesPopulationSaved << ", " << getTime() - ts_start << endl;
-    resultsFile.close();
+    if (id == 0)
+    {
+        ofstream resultsFile;
+        stringstream fileName;
+        fileName << "results" << genSolution << evalSolution << ".txt";
+        resultsFile.open(fileName.str(), ios_base::app);
+        for (int i=0; i<numX; i++) 
+            resultsFile << bestX[i] << ", ";
+        
+        resultsFile << bestU << ", " << timesPopulationSaved << ", " << getTime() - ts_start << endl;
+        resultsFile.close();
+    }
 
     MPI_Finalize();
     return 0;
@@ -150,8 +156,6 @@ void exchangeFirstSolutions()
     randomSolution(numCL, numX, X);
     double u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, 1, evalSolution);
 
-    // Convert populationItem to array
-    // First element - solution, rest - locations
     for (int i = 0; i < numX + 1; i++)
     {
         if (i == 0)
@@ -215,4 +219,28 @@ void notifyBetterFound()
     }
 
     MPI_Ibcast(pop_sendBuff, 1, population_dt, id, MPI_COMM_WORLD, &ibcastRequest);
+}
+
+void getBestSolutions()
+{
+    for (int i = 0; i < numX + 1; i++)
+    {
+        if (i == 0)
+            pop_sendBuff[i] = bestU;
+        else
+            pop_sendBuff[i] = (double)bestX[i - 1];
+    }
+
+    MPI_Gather(pop_sendBuff, 1, population_dt, pop_recvBuff, 1, population_dt, 0, MPI_COMM_WORLD);
+
+    // Find best from data
+    for (int i = 0; i < numProcs; i++)
+    {
+        if (pop_recvBuff[i * (numX + 1)] > bestU)
+        {
+            bestU = population[itemsInPopulation].solution;
+            for (int j = 0; j < numX; j++)
+                bestX[j] = (int)pop_recvBuff[i * (numX + 1) + (j + 1)];
+        }
+    }
 }
