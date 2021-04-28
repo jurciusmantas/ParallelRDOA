@@ -3,11 +3,13 @@
 2
 25
 3
+50
 
 /------/
 
-int numDP -> demand point locations count, max 10000
-int numPF -> preexisting facilities count
-int numF  -> preexisting firm count
-int numCL -> candidate locations count
-int numX  -> new location count
+int numDP   -> demand point locations count, max 10000
+int numPF   -> preexisting facilities count
+int numF    -> preexisting firm count
+int numCL   -> candidate locations count
+int numX    -> new location count
+int popSize -> population size

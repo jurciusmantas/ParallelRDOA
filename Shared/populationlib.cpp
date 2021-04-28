@@ -3,27 +3,7 @@
 #include <iostream>
 #include <float.h>
 #include "populationlib.h"
-
-#pragma region Helpers
-
-// O(n) speed for checking if two arrays contain the same items
-bool containsSameItems(int* arr1, int* arr2, int size)
-{
-    int xor1 = arr1[0];
-    int xor2 = arr2[0];
-
-    for (int i = 1; i < size; i++)
-    {
-        xor1 ^= arr1[i];
-        xor2 ^= arr2[i];
-    }
-
-    int xorBoth = xor1 ^ xor2;
-
-    return xorBoth == 0;
-}
-
-#pragma endregion Helpers
+#include "RDOAlib.h"
 
 void initPopulation(populationItem** population, int populationSize, int numX)
 {

@@ -3,6 +3,7 @@ double HaversineDistance(double* a, double* b);
 void readConfig(int** params, int count);
 void loadDemandPoints(int numDP, double*** demandPoints);
 void calculateDistances(int numDP, double*** distances, double** demandPoints);
+bool containsSameItems(int* arr1, int* arr2, int size);
 void updateRanks(int* ranks, int* X, int* bestX, int numCL, int numX, bool success);
 
 void randomSolution(int numCL, int numX, int* X);
