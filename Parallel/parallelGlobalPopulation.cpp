@@ -17,30 +17,32 @@
     EvalSolution
     0 - BinaryRule, 1 - PartialyBinaryRule 
 */
-#define GEN_SOLUTION 0
-#define EVAL_SOLUTION 0
-#define ITERS 10000
-#define POP_SIZE 50
-
 using namespace std;
 
-/* Configuration */
-int numDP   = 10000;       // Vietoviu skaicius (demand points, max 10000)
-int numPF   = 5;           // Esanciu objektu skaicius (preexisting facilities)
-int numF    = 3;           // Esanciu imoniu skaicius (firms)
-int numCL   = 25;          // Kandidatu naujiems objektams skaicius (candidate locations)
-constexpr int numX    = 3; // Nauju objektu skaicius
+/* Command line parameters */
+int genSolution = 0, 
+    evalSolution = 0,
+    iterations = 0;
 
+/* Configuration */
+int numDP,      // demand point locations count, max 10000
+	numPF,      // preexisting facilities count
+	numF,       // preexisting firm count
+	numCL,      // candidate locations count
+	numX,       // new location count
+	popSize;    // population size
+
+/* Algorithm variables */
 double **demandPoints, *distances;
 int *X, *bestX, *ranks;
 double bestU;
 
-// Population variables
+/* Population variables */
 populationItem* population;
 int itemsInPopulation = 0;
 int timesPopulationSaved = 0;
 
-// Parallel variables
+/* Parallel variables */
 int id, numProcs, offset, procChunkSize;
 double *pop_sendBuff, *pop_recvBuff;
 MPI_Datatype population_dt;
@@ -64,11 +66,18 @@ int main(int argc , char * argv []) {
     //New seed on every run
     srand((unsigned)time(0) * (id + 1));
 
+    genSolution = atoi(argv[1]);
+    evalSolution = atoi(argv[2]);
+    iterations = atoi(argv[3]);
+
+    int* params[6] = { &numDP, &numPF, &numF, &numCL, &numX, &popSize };
+	readConfig(params, 6);
+
 	loadDemandPoints(numDP, &demandPoints);
 	calculateDistancesAsync(numDP, numProcs, id, &distances, demandPoints);
 
-    initPopulationDataTypeToMPI(&population_dt, numX);
-    initPopulation(&population, POP_SIZE, numX);
+    initPopulationStructToMPI(&population_dt, numX);
+    initPopulation(&population, popSize, numX);
     pop_sendBuff = new double[numX + 1];
     pop_recvBuff = new double[numProcs * (numX + 1)];
 
@@ -84,13 +93,13 @@ int main(int argc , char * argv []) {
 
     exchangeFirstSolutions();
 	
-    for (int iters = 0; iters < ITERS; iters++) {
-        //printf("iteration - %d \n", iters);
+    for (int iters = 0; iters < iterations; iters++) {
+        printf("iteration - %d \n", iters);
         
-        generateSolution_1D(numX, numDP, numCL, X, bestX, ranks, distances, 1, GEN_SOLUTION);
+        generateSolution(numX, numDP, numCL, X, bestX, ranks, distances, 1, genSolution);
 
         //Search for solution in population
-        populationItem popItem = search(population, POP_SIZE, X, numX);
+        populationItem popItem = search(population, popSize, X, numX);
         if (popItem.solution > -1.0)
         {
             /* Generated solution was found in population */
@@ -100,8 +109,8 @@ int main(int argc , char * argv []) {
         else
         {
             /* Generated solution was not found in population */
-            u = evaluateSolution_1D(numX, numDP, numPF, numF, X, demandPoints, distances, 1, EVAL_SOLUTION);
-            insert(population, X, numX, u, &itemsInPopulation, POP_SIZE);
+            u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, 1, evalSolution);
+            insert(population, X, numX, u, &itemsInPopulation, popSize);
         }
 
         /* Check if other processor found better solution */
@@ -139,7 +148,7 @@ int main(int argc , char * argv []) {
 void exchangeFirstSolutions()
 {
     randomSolution(numCL, numX, X);
-    double u = evaluateSolution_1D(numX, numDP, numPF, numF, X, demandPoints, distances, 1, EVAL_SOLUTION);
+    double u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, 1, evalSolution);
 
     // Convert populationItem to array
     // First element - solution, rest - locations

@@ -9,7 +9,7 @@
 #include "RDOAlib.h"
 #include "populationlib.h"
 
-void initPopulationDataTypeToMPI(MPI_Datatype* population_dt, int numX)
+void initPopulationStructToMPI(MPI_Datatype* population_dt, int numX)
 {
 	MPI_Type_contiguous(numX + 1, MPI_DOUBLE, &(*population_dt));
   	MPI_Type_commit(&(*population_dt));
@@ -51,4 +51,6 @@ double* popItemToArray(populationItem item, int numX)
         else
             result[i] = item.locations[i - 1];
     }
+
+	return result;
 }
