@@ -138,12 +138,12 @@ int main(int argc , char * argv []) {
     {
         ofstream resultsFile;
         stringstream fileName;
-        fileName << "results" << genSolution << evalSolution << ".txt";
+        fileName << "results" << genSolution << evalSolution << "-n" << numProcs << ".txt";
         resultsFile.open(fileName.str(), ios_base::app);
         for (int i=0; i<numX; i++) 
-            resultsFile << bestX[i] << ", ";
+            resultsFile << bestX[i] << " ";
         
-        resultsFile << bestU << ", " << timesPopulationSaved << ", " << getTime() - ts_start << endl;
+        resultsFile << bestU << ", " << ", " << getTime() - ts_start << endl;
         resultsFile.close();
     }
 
