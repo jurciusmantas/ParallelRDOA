@@ -37,13 +37,16 @@ populationItem search(populationItem* population, int populationSize, int* X, in
     return result;
 }
 
-void insert(populationItem* population, int* locations, int numX, double solution, int* itemsInPopulation, int populationSize)
+void insert(populationItem* population, int* locations, int numX, double solution, int* itemsInPopulation, int populationSize, int* popRanks = NULL)
 {
     if ((*itemsInPopulation) < populationSize)
     {
         for (int j = 0; j < numX; j++)
             population[(*itemsInPopulation)].locations[j] = locations[j];
         population[(*itemsInPopulation)].solution = solution;
+
+        if (popRanks != NULL)
+            updatePopulationRanks(popRanks, numX, population[(*itemsInPopulation)], { -1 });
 
         (*itemsInPopulation)++;
     }
@@ -63,6 +66,9 @@ void insert(populationItem* population, int* locations, int numX, double solutio
 
         if (worstIndex > -1 && solution > worst)
         {
+            if (popRanks != NULL)
+                updatePopulationRanks(popRanks, numX, { solution, locations }, population[worstIndex]);
+            
             for (int j = 0; j < numX; j++)
                 population[worstIndex].locations[j] = locations[j];
             population[worstIndex].solution = solution;
@@ -70,19 +76,14 @@ void insert(populationItem* population, int* locations, int numX, double solutio
     }
 }
 
-double* popItemToArray(populationItem item, int numX)
+void updatePopulationRanks(int* ranks, int numX, populationItem inserted, populationItem removed)
 {
-    // Convert populationItem to array
-    // First element - solution, rest - locations
-    
-	double* result = new double[numX + 1];
-	for (int i = 0; i < numX + 1; i++)
+    for (int i = 0; i < numX; i++)
     {
-        if (i == 0)
-            result[i] = item.solution;
-        else
-            result[i] = item.locations[i - 1];
-    }
+        if (inserted.solution != -1 && inserted.locations != NULL)
+            ranks[inserted.locations[i]]++;
 
-	return result;
+        if (removed.solution != -1 && removed.locations != NULL)
+            ranks[removed.locations[i]]--;
+    }
 }

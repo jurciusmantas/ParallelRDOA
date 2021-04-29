@@ -13,6 +13,6 @@ void initPopulation(populationItem** population, int populationSize, int numX);
 populationItem search(populationItem* population, int populationSize, int* X, int numX);
 
 /* Insert (if neccessary) */
-void insert(populationItem* population, int* locations, int numX, double solution, int* itemsInPopulation, int populationSize);
+void insert(populationItem* population, int* locations, int numX, double solution, int* itemsInPopulation, int populationSize, int* popRanks = NULL);
 
 double* popItemToArray(populationItem item, int numX);
