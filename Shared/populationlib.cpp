@@ -37,7 +37,19 @@ populationItem search(populationItem* population, int populationSize, int* X, in
     return result;
 }
 
-void insert(populationItem* population, int* locations, int numX, double solution, int* itemsInPopulation, int populationSize, int* popRanks = NULL)
+void updatePopulationRanks(int* ranks, int numX, populationItem inserted, populationItem removed)
+{
+    for (int i = 0; i < numX; i++)
+    {
+        if (inserted.solution > -1 && inserted.locations != NULL)
+            ranks[inserted.locations[i]]++;
+
+        if (removed.solution > -1 && removed.locations != NULL)
+            ranks[removed.locations[i]]--;
+    }
+}
+
+void insert(populationItem* population, int* locations, int numX, double solution, int* itemsInPopulation, int populationSize, int* popRanks)
 {
     if ((*itemsInPopulation) < populationSize)
     {
@@ -73,17 +85,5 @@ void insert(populationItem* population, int* locations, int numX, double solutio
                 population[worstIndex].locations[j] = locations[j];
             population[worstIndex].solution = solution;
         }
-    }
-}
-
-void updatePopulationRanks(int* ranks, int numX, populationItem inserted, populationItem removed)
-{
-    for (int i = 0; i < numX; i++)
-    {
-        if (inserted.solution != -1 && inserted.locations != NULL)
-            ranks[inserted.locations[i]]++;
-
-        if (removed.solution != -1 && removed.locations != NULL)
-            ranks[removed.locations[i]]--;
     }
 }

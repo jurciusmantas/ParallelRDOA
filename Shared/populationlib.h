@@ -12,7 +12,7 @@ void initPopulation(populationItem** population, int populationSize, int numX);
 /* Search for solution in population */
 populationItem search(populationItem* population, int populationSize, int* X, int numX);
 
-/* Insert (if neccessary) */
-void insert(populationItem* population, int* locations, int numX, double solution, int* itemsInPopulation, int populationSize, int* popRanks = NULL);
+/* Insert (if neccessary) and update ranks (if ranks are provided) */
+void insert(populationItem* population, int* locations, int numX, double solution, int* itemsInPopulation, int populationSize, int* popRanks);
 
 double* popItemToArray(populationItem item, int numX);

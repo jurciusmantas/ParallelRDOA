@@ -147,27 +147,67 @@ int main(int argc , char * argv []) {
         resultsFile.close();
     }
 
-    //test - write population, ranks
-    ofstream tempFile;
-    stringstream tempFileName;
-    tempFileName << "temp-proc" << id << ".txt";
-    tempFile.open(tempFileName.str(), ios_base::app);
-    tempFile << "-----" << endl;
-    tempFile << "population:" << endl;
-    for (int i = 0; i < itemsInPopulation; i++)
-    {
-        tempFile << i << " | " << population[i].solution << " | ";
-        for (int j = 0; j < numX; j++)
-            tempFile << population[i].locations[j] << " "
-        tempFile << endl;
-    }
-    tempFile << "-----" << endl;
-    tempFile << "ranks:" << endl;
-    for (int i = 0; i < numCL; i++)
-        tempFile << i << " = " << ranks[i] << endl;
+    // //test - write population, ranks
+    // ofstream tempFile;
+    // stringstream tempFileName;
+    // tempFileName << "temp-proc" << id << ".txt";
+    // tempFile.open(tempFileName.str(), ios_base::app);
+    // tempFile << "-----" << endl;
+    // tempFile << "population:" << endl;
+    // for (int i = 0; i < itemsInPopulation; i++)
+    // {
+    //     tempFile << i << " | " << population[i].solution << " | ";
+    //     for (int j = 0; j < numX; j++)
+    //         tempFile << population[i].locations[j] << " ";
+    //     tempFile << endl;
+    // }
+    // tempFile << "-----" << endl;
+    // tempFile << "ranks:" << endl;
+    // for (int i = 0; i < numCL; i++)
+    //     tempFile << i << " = " << ranks[i] << endl;
 
     MPI_Finalize();
     return 0;
+}
+
+void exchangeFirstSolutions()
+{
+    randomSolution(numCL, numX, X);
+    double u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, 1, evalSolution);
+
+    for (int i = 0; i < numX + 1; i++)
+    {
+        if (i == 0)
+            pop_sendBuff[i] = u;
+        else
+            pop_sendBuff[i] = (double)X[i - 1];
+    }
+
+    MPI_Allgather(pop_sendBuff, 1, population_dt, pop_recvBuff, 1, population_dt, MPI_COMM_WORLD);
+    
+    int bestIndex = -1;
+    // Revert from array to populationItem
+    for (int i = 0; i < numProcs; i++)
+    {
+        population[itemsInPopulation].solution = pop_recvBuff[i * (numX + 1)];
+        if (population[itemsInPopulation].solution > bestU)
+        {
+            bestIndex = i;
+            bestU = population[itemsInPopulation].solution;
+        }
+
+        for (int j = 0; j < numX; j++)
+        {
+            population[itemsInPopulation].locations[j] = (int)pop_recvBuff[i * (numX + 1) + (j + 1)];
+            ranks[population[itemsInPopulation].locations[j]]++;
+        }
+        
+        itemsInPopulation++;
+    }
+
+    // All proccesors save the best solution
+    for (int i = 0; i < numX; i++) 
+        bestX[i] = population[bestIndex].locations[i];
 }
 
 void checkForNewNotifications()
