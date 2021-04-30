@@ -143,7 +143,7 @@ int main(int argc , char * argv []) {
         for (int i=0; i<numX; i++) 
             resultsFile << bestX[i] << " ";
         
-        resultsFile << bestU << ", " << ", " << getTime() - ts_start << endl;
+        resultsFile << ", " << bestU << ", " << getTime() - ts_start << endl;
         resultsFile.close();
     }
 

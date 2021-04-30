@@ -76,10 +76,10 @@ int main(int argc, char* argv[]) {
     bestU = u;
     for (int i = 0; i < numX; i++) 
         bestX[i] = X[i];
-    insert(population, X, numX, u, &itemsInPopulation, popSize);
+    insert(population, X, numX, u, &itemsInPopulation, popSize, NULL);
 	
     for (int iters = 0; iters < iterations; iters++) {
-        printf("iteration - %d \n", iters);
+        //printf("iteration - %d \n", iters);
         
         generateSolution(numX, numDP, numCL, X, bestX, ranks, distances, 2, genSolution);
 
@@ -95,7 +95,7 @@ int main(int argc, char* argv[]) {
         {
             /* Generated solution was not found in population */
             u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, 2, evalSolution);
-            insert(population, X, numX, u, &itemsInPopulation, popSize);
+            insert(population, X, numX, u, &itemsInPopulation, popSize, NULL);
         }
 
         if (u > bestU) 
