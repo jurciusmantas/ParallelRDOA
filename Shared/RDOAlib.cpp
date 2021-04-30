@@ -116,21 +116,15 @@ bool containsSameItems(int* arr1, int* arr2, int size)
     return xorBoth == 0;
 }
 
-bool locationAvailable(int location, int toChangeIndex, int numX, int *X, int* bestX)
+bool locationAvailable(int location, int toChangeIndex, int numX, int *X, int* bestX, int* result)
 {
-    int* tempX = new int[numX];
     for (int i = 0; i < numX; i++)
     {
-        if (X[i] == location)
+        if (X[i] == location || bestX[i] == location || result[i] == location)
             return false;
-
-        if (toChangeIndex == i)
-            tempX[i] = location;
-        else
-            tempX[i] = X[i];
     }
 
-    return !containsSameItems(tempX, bestX, numX);
+    return true;
 }
 
 
@@ -217,6 +211,11 @@ void updateRanks(int* ranks, int* X, int* bestX, int numCL, int numX, bool succe
 
 void generateSolutionRDOA(int numX, int numDP, int numCL, int* X, int* bestX, int* ranks, void* distances, int distancesDim)
 {
+    // Generating taking best solution and changing it 
+    int* result = new int[numX];
+    for (int i = 0; i < numX; i++)
+        result[i] = bestX[i];
+
     bool changed = false;
     do
     {
@@ -236,14 +235,13 @@ void generateSolutionRDOA(int numX, int numDP, int numCL, int* X, int* bestX, in
             for (int j = 0; j < numCL; j++)
                 locationProbabilities[j] = ranks[j] / (double)rankSum;
 
-
             bool changedInner = false;
             do
             {
                 int pickLocation = rouletteWheel(locationProbabilities, numCL);
-                if (locationAvailable(pickLocation, i, numX, X, bestX))
+                if (locationAvailable(pickLocation, i, numX, X, bestX, result))
                 {
-                    X[i] = pickLocation;
+                    result[i] = pickLocation;
                     changed = true;
                     changedInner = true;
                 }
@@ -252,10 +250,20 @@ void generateSolutionRDOA(int numX, int numDP, int numCL, int* X, int* bestX, in
         }
     }
     while (!changed);
+
+    for (int i = 0; i < numX; i++)
+        X[i] = result[i];
+
+    delete result;
 }
 
 void generateSolutionRDOAD(int numX, int numDP, int numCL, int* X, int* bestX, int* ranks, void* distances, int distancesDim)
 {
+    // Generating taking best solution and changing it 
+    int* result = new int[numX];
+    for (int i = 0; i < numX; i++)
+        result[i] = bestX[i];
+
     bool changed = false;
     do
     {
@@ -290,9 +298,9 @@ void generateSolutionRDOAD(int numX, int numDP, int numCL, int* X, int* bestX, i
             do
             {
                 int pickLocation = rouletteWheel(locationProbabilities, numCL);
-                if (locationAvailable(pickLocation, i, numX, X, bestX))
+                if (locationAvailable(pickLocation, i, numX, X, bestX, result))
                 {
-                    X[i] = pickLocation;
+                    result[i] = pickLocation;
                     changed = true;
                     changedInner = true;
                 }
@@ -301,6 +309,11 @@ void generateSolutionRDOAD(int numX, int numDP, int numCL, int* X, int* bestX, i
         }
     }
     while (!changed);
+
+    for (int i = 0; i < numX; i++)
+        X[i] = result[i];
+
+    delete result;
 }
 
 void generateSolution(int numX, int numDP, int numCL, int* X, int* bestX, int* ranks, void* distances, int distancesDim, int gen_solution_mode)
