@@ -79,23 +79,29 @@ int main(int argc, char* argv[]) {
     insert(population, X, numX, u, &itemsInPopulation, popSize, NULL);
 	
     for (int iters = 0; iters < iterations; iters++) {
-        //printf("iteration - %d \n", iters);
-        
-        generateSolution(numX, numDP, numCL, X, bestX, ranks, distances, 2, genSolution);
+        printf("iteration - %d \n", iters);
 
-        //Search for solution in population
-        populationItem popItem = search(population, popSize, X, numX);
-        if (popItem.solution > -1.0)
+        bool unknownGenerated = false;
+        while(!unknownGenerated)
         {
-            /* Generated solution was found in population */
-            u = popItem.solution;
-            timesPopulationSaved++;
-        }
-        else
-        {
-            /* Generated solution was not found in population */
-            u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, 2, evalSolution);
-            insert(population, X, numX, u, &itemsInPopulation, popSize, NULL);
+            generateSolution(numX, numDP, numCL, X, bestX, ranks, distances, 2, genSolution);
+
+            //Search for solution in population
+            populationItem popItem = search(population, popSize, X, numX);
+            if (popItem.solution > -1.0)
+            {
+                /* Generated solution was found in population */
+                u = popItem.solution;
+                timesPopulationSaved++;
+            }
+            else
+            {
+                /* Generated solution was not found in population */
+                unknownGenerated = true;
+
+                u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, 2, evalSolution);
+                insert(population, X, numX, u, &itemsInPopulation, popSize, NULL);
+            }
         }
 
         if (u > bestU) 

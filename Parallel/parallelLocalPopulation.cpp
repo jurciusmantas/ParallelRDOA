@@ -95,23 +95,29 @@ int main(int argc , char * argv []) {
     exchangeFirstSolutions();
 	
     for (int iters = 0; iters < iterations / numProcs; iters++) {
-        //printf("iteration - %d \n", iters);
+        //cout << id << ": iteration - " << iters << endl;
         
-        generateSolution(numX, numDP, numCL, X, bestX, ranks, distances, 1, genSolution);
+        bool unknownGenerated = false;
+        while(!unknownGenerated)
+        {
+            generateSolution(numX, numDP, numCL, X, bestX, ranks, distances, 2, genSolution);
+            
+            //Search for solution in population
+            populationItem popItem = search(population, popSize, X, numX);
+            if (popItem.solution > -1.0)
+            {
+                /* Generated solution was found in population */
+                u = popItem.solution;
+                timesPopulationSaved++;
+            }
+            else
+            {
+                /* Generated solution was not found in population */
+                unknownGenerated = true;
 
-        //Search for solution in population
-        populationItem popItem = search(population, popSize, X, numX);
-        if (popItem.solution > -1.0)
-        {
-            /* Generated solution was found in population */
-            u = popItem.solution;
-            timesPopulationSaved++;
-        }
-        else
-        {
-            /* Generated solution was not found in population */
-            u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, 1, evalSolution);
-            insert(population, X, numX, u, &itemsInPopulation, popSize);
+                u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, 1, evalSolution);
+                insert(population, X, numX, u, &itemsInPopulation, popSize, NULL);
+            }
         }
 
         /* Check if other processor found better solution */

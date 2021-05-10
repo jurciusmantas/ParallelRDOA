@@ -380,7 +380,7 @@ double evaluateSolutionBinary(int numX, int numDP, int numPF, int numF, int* X, 
         else if (bestCX == bestPF)
             result += 0.3 * demandPoints[i][2]; // Fixed proportion - 0.3?
     }
-
+    
 	return result;
 }
 
