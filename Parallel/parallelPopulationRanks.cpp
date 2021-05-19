@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <time.h>
 #include <sys/time.h>
-#include <omp.h>
 #include <mpi.h>
 #include <sstream>
 #include "../Shared/RDOAlib.h"
@@ -148,25 +147,6 @@ int main(int argc , char * argv []) {
         resultsFile << ", " << bestU << ", " << getTime() - ts_start << endl;
         resultsFile.close();
     }
-
-    // //test - write population, ranks
-    // ofstream tempFile;
-    // stringstream tempFileName;
-    // tempFileName << "temp-proc" << id << ".txt";
-    // tempFile.open(tempFileName.str(), ios_base::app);
-    // tempFile << "-----" << endl;
-    // tempFile << "population:" << endl;
-    // for (int i = 0; i < itemsInPopulation; i++)
-    // {
-    //     tempFile << i << " | " << population[i].solution << " | ";
-    //     for (int j = 0; j < numX; j++)
-    //         tempFile << population[i].locations[j] << " ";
-    //     tempFile << endl;
-    // }
-    // tempFile << "-----" << endl;
-    // tempFile << "ranks:" << endl;
-    // for (int i = 0; i < numCL; i++)
-    //     tempFile << i << " = " << ranks[i] << endl;
 
     MPI_Finalize();
     return 0;
