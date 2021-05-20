@@ -4,6 +4,5 @@
 
 *.exe
 test.cpp
-*.txt
 *.sh
 settings.json

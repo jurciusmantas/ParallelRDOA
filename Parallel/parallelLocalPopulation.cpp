@@ -100,7 +100,7 @@ int main(int argc , char * argv []) {
         bool unknownGenerated = false;
         while(!unknownGenerated)
         {
-            generateSolution(numX, numDP, numCL, X, bestX, ranks, distances, 2, genSolution);
+            generateSolution(numX, numDP, numCL, X, bestX, ranks, distances, 1, genSolution);
             
             //Search for solution in population
             populationItem popItem = search(population, popSize, X, numX);

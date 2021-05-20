@@ -82,9 +82,9 @@ int main(int argc , char * argv []) {
     
     bestU = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, 1, evalSolution);
 
-    //----- Pagrindinis ciklas ------------------------------------------------
-
+    int i = 0;
     while (true) {
+        cout << id << ": iteration - " << i << endl;
         bool breakMain = false;
         // Offset by numProcs
         for (int i = 0; i < numProcs; i++)
@@ -106,6 +106,8 @@ int main(int argc , char * argv []) {
             for (int i=0; i<numX; i++) 
                 bestX[i] = X[i];
         }
+
+        i++;
     }
 
     getBestSolutions();
