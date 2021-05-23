@@ -127,7 +127,6 @@ bool locationAvailable(int location, int toChangeIndex, int numX, int *X, int* b
     return true;
 }
 
-
 double GetDistance(void* distances, int distancesDim, int i, int j, int numDP)
 {
     double result;
@@ -229,24 +228,24 @@ void generateSolutionRDOA(int numX, int numDP, int numCL, int* X, int* bestX, in
 
             int rankSum = 0;
             for (int j = 0; j < numCL; j++)
-                rankSum += ranks[j];
+            {
+                if (locationAvailable(j, i, numX, X, bestX, result))
+                    rankSum += ranks[j];
+            }
 
             double* locationProbabilities = new double[numCL];
             for (int j = 0; j < numCL; j++)
-                locationProbabilities[j] = ranks[j] / (double)rankSum;
-
-            bool changedInner = false;
-            do
             {
-                int pickLocation = rouletteWheel(locationProbabilities, numCL);
-                if (locationAvailable(pickLocation, i, numX, X, bestX, result))
-                {
-                    result[i] = pickLocation;
-                    changed = true;
-                    changedInner = true;
-                }
+                if (locationAvailable(j, i, numX, X, bestX, result))
+                    locationProbabilities[j] = ranks[j] / (double)rankSum;
+                else
+                    locationProbabilities[j] = 0; // Not available location probability
             }
-            while(!changedInner);
+
+            int pickLocation = rouletteWheel(locationProbabilities, numCL);
+            result[i] = pickLocation;
+            changed = true;
+            delete[] locationProbabilities;
         }
     }
     while (!changed);
@@ -254,7 +253,7 @@ void generateSolutionRDOA(int numX, int numDP, int numCL, int* X, int* bestX, in
     for (int i = 0; i < numX; i++)
         X[i] = result[i];
 
-    delete result;
+    delete[] result;
 }
 
 void generateSolutionRDOAD(int numX, int numDP, int numCL, int* X, int* bestX, int* ranks, void* distances, int distancesDim)
@@ -278,7 +277,7 @@ void generateSolutionRDOAD(int numX, int numDP, int numCL, int* X, int* bestX, i
             double* locationProbabilities = new double[numCL];
             for (int j = 0; j < numCL; j++)
             {
-                if (j == X[i])
+                if (!locationAvailable(j, i, numX, X, bestX, result))
                 {
                     locationProbabilities[j] = 0;
                     continue;
@@ -287,25 +286,17 @@ void generateSolutionRDOAD(int numX, int numDP, int numCL, int* X, int* bestX, i
                 double probabilityDenominator = 0.0;
                 for (int z = 0; z < numCL; z++)
                 {
-                    if (z != X[i])
+                    if (locationAvailable(z, i, numX, X, bestX, result))
                         probabilityDenominator += ranks[z] / GetDistance(distances, distancesDim, z, X[i], numDP);
                 }
 
                 locationProbabilities[j] = ranks[j] / (GetDistance(distances, distancesDim, j, X[i], numDP) * probabilityDenominator);
             }
-            
-            bool changedInner = false;
-            do
-            {
-                int pickLocation = rouletteWheel(locationProbabilities, numCL);
-                if (locationAvailable(pickLocation, i, numX, X, bestX, result))
-                {
-                    result[i] = pickLocation;
-                    changed = true;
-                    changedInner = true;
-                }
-            }
-            while(!changedInner);
+
+            int pickLocation = rouletteWheel(locationProbabilities, numCL);
+            result[i] = pickLocation;
+            changed = true;
+            delete[] locationProbabilities;
         }
     }
     while (!changed);
@@ -313,7 +304,7 @@ void generateSolutionRDOAD(int numX, int numDP, int numCL, int* X, int* bestX, i
     for (int i = 0; i < numX; i++)
         X[i] = result[i];
 
-    delete result;
+    delete[] result;
 }
 
 void generateSolution(int numX, int numDP, int numCL, int* X, int* bestX, int* ranks, void* distances, int distancesDim, int gen_solution_mode)
@@ -425,7 +416,7 @@ double evaluateSolutionPartialyBinary(int numX, int numDP, int numPF, int numF, 
 
         result += demandPoints[i][2] * (attractionCurrent / (attractionCurrent + sumAttractionPreexisting));
 
-        delete bestPFs;
+        delete[] bestPFs;
     }
 
 	return result;

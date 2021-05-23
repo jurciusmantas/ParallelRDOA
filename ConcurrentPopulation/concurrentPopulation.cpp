@@ -36,7 +36,6 @@ int *X, *bestX, *ranks;
 /* Population variables */
 populationItem* population;
 int itemsInPopulation = 0;
-int timesPopulationSaved = 0;
 
 int main(int argc, char* argv[]) {
     double ts_start = getTime();
@@ -79,7 +78,7 @@ int main(int argc, char* argv[]) {
     insert(population, X, numX, u, &itemsInPopulation, popSize, NULL);
 	
     for (int iters = 0; iters < iterations; iters++) {
-        printf("iteration - %d \n", iters);
+        cout << "iteration - " << iters << endl;
 
         bool unknownGenerated = false;
         while(!unknownGenerated)
@@ -92,7 +91,6 @@ int main(int argc, char* argv[]) {
             {
                 /* Generated solution was found in population */
                 u = popItem.solution;
-                timesPopulationSaved++;
             }
             else
             {
@@ -124,5 +122,5 @@ int main(int argc, char* argv[]) {
 	for (int i=0; i<numX; i++) 
         resultsFile << bestX[i] << " ";
     
-	resultsFile << ", " << timesPopulationSaved << ", " << bestU << ", " << getTime() - ts_start << endl;
+	resultsFile << ", " << bestU << ", " << getTime() - ts_start << endl;
 }
