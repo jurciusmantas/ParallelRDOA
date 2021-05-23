@@ -94,28 +94,18 @@ int main(int argc , char * argv []) {
     exchangeFirstSolutions();
 	
     for (int iters = 0; iters < iterations / numProcs; iters++) {
-        cout << id << ": iteration - " << iters << endl;
-        
         bool unknownGenerated = false;
         while(!unknownGenerated)
         {
             generateSolution(numX, numDP, numCL, X, bestX, ranks, distances, 1, genSolution);
             
-            //Search for solution in population
+            /* Search for solution in population */
             populationItem popItem = search(population, popSize, X, numX);
-            if (popItem.solution > -1.0)
-            {
-                /* Generated solution was found in population */
-                u = popItem.solution;
-                timesPopulationSaved++;
-            }
-            else
+            if (popItem.solution == -1.0)
             {
                 /* Generated solution was not found in population */
                 unknownGenerated = true;
-
                 u = evaluateSolution(numX, numDP, numPF, numF, X, demandPoints, distances, 1, evalSolution);
-
                 insert(population, X, numX, u, &itemsInPopulation, popSize, ranks);
             }
         }
