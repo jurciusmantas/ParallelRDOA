@@ -227,16 +227,19 @@ void generateSolutionRDOA(int numX, int numDP, int numCL, int* X, int* bestX, in
                 continue;
 
             int rankSum = 0;
+            bool* notAvailableLocations = new bool[numCL](); // () in the back fills 0's
             for (int j = 0; j < numCL; j++)
             {
                 if (locationAvailable(j, i, numX, X, bestX, result))
                     rankSum += ranks[j];
+                else
+                    notAvailableLocations[j] = true;
             }
 
             double* locationProbabilities = new double[numCL];
             for (int j = 0; j < numCL; j++)
             {
-                if (locationAvailable(j, i, numX, X, bestX, result))
+                if (!notAvailableLocations[j])
                     locationProbabilities[j] = ranks[j] / (double)rankSum;
                 else
                     locationProbabilities[j] = 0; // Not available location probability
@@ -246,6 +249,7 @@ void generateSolutionRDOA(int numX, int numDP, int numCL, int* X, int* bestX, in
             result[i] = pickLocation;
             changed = true;
             delete[] locationProbabilities;
+            delete[] notAvailableLocations;
         }
     }
     while (!changed);
@@ -275,9 +279,17 @@ void generateSolutionRDOAD(int numX, int numDP, int numCL, int* X, int* bestX, i
                 continue;
 
             double* locationProbabilities = new double[numCL];
+            bool* notAvailableLocations = new bool[numCL]();
             for (int j = 0; j < numCL; j++)
             {
                 if (!locationAvailable(j, i, numX, X, bestX, result))
+                    notAvailableLocations[j] = true;
+            }
+
+
+            for (int j = 0; j < numCL; j++)
+            {
+                if (notAvailableLocations[j])
                 {
                     locationProbabilities[j] = 0;
                     continue;
@@ -286,7 +298,7 @@ void generateSolutionRDOAD(int numX, int numDP, int numCL, int* X, int* bestX, i
                 double probabilityDenominator = 0.0;
                 for (int z = 0; z < numCL; z++)
                 {
-                    if (locationAvailable(z, i, numX, X, bestX, result))
+                    if (!notAvailableLocations[z])
                         probabilityDenominator += ranks[z] / GetDistance(distances, distancesDim, z, X[i], numDP);
                 }
 
@@ -297,6 +309,7 @@ void generateSolutionRDOAD(int numX, int numDP, int numCL, int* X, int* bestX, i
             result[i] = pickLocation;
             changed = true;
             delete[] locationProbabilities;
+            delete[] notAvailableLocations;
         }
     }
     while (!changed);
