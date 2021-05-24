@@ -199,8 +199,6 @@ void checkForNewNotifications()
                 for (int i = 0; i < numX; i++)
                     bestX[i] = (int)pop_recvBuff[i + 1];
             }
-            else
-                cout << id << " received bestU which was lower, bestU = " << bestU << ", received = " << pop_recvBuff[0] << endl;
         }
         else
             break;
