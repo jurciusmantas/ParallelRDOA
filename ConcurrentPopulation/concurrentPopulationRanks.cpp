@@ -75,10 +75,11 @@ int main(int argc, char* argv[]) {
     bestU = u;
     for (int i = 0; i < numX; i++) 
         bestX[i] = X[i];
+        
     insert(population, X, numX, u, &itemsInPopulation, popSize, ranks);
 	
     for (int iters = 0; iters < iterations; iters++) {
-        cout << "iteration - " << iters << endl;
+        //cout << "iteration - " << iters << endl;
 
         bool unknownGenerated = false;
         while(!unknownGenerated)
@@ -91,7 +92,6 @@ int main(int argc, char* argv[]) {
             {
                 /* Generated solution was found in population */
                 u = popItem.solution;
-                cout << iters << " : generated known in population :(" << endl;
             }
             else
             {
